@@ -1,0 +1,19 @@
+name: Frontend Quality
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run quality checks
+        run: node scripts/check.mjs

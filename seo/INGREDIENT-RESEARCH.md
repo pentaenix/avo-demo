@@ -1,0 +1,23 @@
+# Ingredient research references
+
+Verified on 2026-09-07 against PubMed and/or the journal publisher record. These sources support the short ingredient-research notes shown in the Green Boost drawer. They are intentionally used as **ingredient context**, not as evidence that one serving of Green Boost reproduces the study intervention or clinical outcome.
+
+- **Pineapple** — Rathnavelu, V., Alitheen, N. B., Sohila, S., Kanagesan, S., & Ramesh, R. (2016). Potential role of bromelain in clinical and therapeutic applications. *Biomedical Reports, 5*(3), 283–288. https://doi.org/10.3892/br.2016.720 — PMID 27602208.
+- **Nopal** — López-Romero, P., Pichardo-Ontiveros, E., Avila-Nava, A., Vázquez-Manjarrez, N., Tovar, A. R., Pedraza-Chaverri, J., & Torres, N. (2014). The effect of nopal (*Opuntia ficus indica*) on postprandial blood glucose, incretins, and antioxidant activity in Mexican patients with type 2 diabetes after consumption of two different composition breakfasts. *Journal of the Academy of Nutrition and Dietetics, 114*(11), 1811–1818. https://doi.org/10.1016/j.jand.2014.06.352 — PMID 25132122.
+- **Green Apple** — Koutsos, A., et al. (2020). Two apples a day lower serum cholesterol and improve cardiometabolic biomarkers in mildly hypercholesterolemic adults: A randomized, controlled, crossover trial. *The American Journal of Clinical Nutrition, 111*(2), 307–318. https://doi.org/10.1093/ajcn/nqz282 — PMID 31840162.
+- **Cucumber** — Mukherjee, P. K., Nema, N. K., Maity, N., & Sarkar, B. K. (2013). Phytochemical and therapeutic potential of cucumber. *Fitoterapia, 84*, 227–236. https://doi.org/10.1016/j.fitote.2012.10.003 — PMID 23098877.
+- **Spinach** — Jovanovski, E., et al. (2015). Effect of spinach, a high dietary nitrate source, on arterial stiffness and related hemodynamic measures: A randomized, controlled trial in healthy adults. *Clinical Nutrition Research, 4*(3), 160–167. https://doi.org/10.7762/cnr.2015.4.3.160 — PMID 26251834.
+- **Celery** — Sowbhagya, H. B. (2014). Chemistry, technology, and nutraceutical functions of celery (*Apium graveolens* L.): An overview. *Critical Reviews in Food Science and Nutrition, 54*(3), 389–398. https://doi.org/10.1080/10408398.2011.586740 — PMID 24188309.
+- **Avocado** — Unlu, N. Z., Bohn, T., Clinton, S. K., & Schwartz, S. J. (2005). Carotenoid absorption from salad and salsa by humans is enhanced by the addition of avocado or avocado oil. *The Journal of Nutrition, 135*(3), 431–436. https://doi.org/10.1093/jn/135.3.431 — PMID 15735074.
+- **Cilantro** — Wei, J.-N., Liu, Z.-H., Zhao, Y.-P., Zhao, L.-L., Xue, T.-K., & Lan, Q.-K. (2019). Phytochemical and bioactive profile of *Coriandrum sativum* L. *Food Chemistry, 286*, 260–267. https://doi.org/10.1016/j.foodchem.2019.01.171 — PMID 30827604.
+- **Ginger** — Wu, K.-L., Rayner, C. K., Chuah, S.-K., Changchien, C.-S., Lu, S.-N., Chiu, Y.-C., Chiu, K.-W., & Lee, C.-M. (2008). Effects of ginger on gastric emptying and motility in healthy humans. *European Journal of Gastroenterology & Hepatology, 20*(5), 436–440. https://doi.org/10.1097/MEG.0b013e3282f4b224 — PMID 18403946.
+- **Turmeric** — Dehzad, M. J., Ghalandari, H., Nouri, M., & Askarpour, M. (2023). Antioxidant and anti-inflammatory effects of curcumin/turmeric supplementation in adults: A GRADE-assessed systematic review and dose-response meta-analysis of randomized controlled trials. *Cytokine, 164*, 156144. https://doi.org/10.1016/j.cyto.2023.156144 — PMID 36804260.
+- **Mint** — Hirata, M., et al. (2025). Investigating the health potential of *Mentha* species against gastrointestinal disorders—A systematic review of clinical evidence. *Pharmaceuticals, 18*(5), 693. https://doi.org/10.3390/ph18050693 — PMID 40430512.
+- **Basil** — Sestili, P., et al. (2018). The potential effects of *Ocimum basilicum* on health: A review of pharmacological and toxicological studies. *Expert Opinion on Drug Metabolism & Toxicology, 14*(7), 679–692. https://doi.org/10.1080/17425255.2018.1484450 — PMID 29865879.
+
+## Appropriateness notes
+
+- Primary human trials are used where they are strong and directly relevant (nopal, apple, spinach, avocado, ginger).
+- Systematic reviews/meta-analyses are used where the clinical literature is mainly supplement/extract based (turmeric, mint).
+- Broad reviews are used only to describe phytochemistry or research context where human evidence is limited (pineapple/bromelain, cucumber, celery, cilantro, basil).
+- Drawer copy explicitly distinguishes concentrated extracts, oils, large food portions, or high-dose interventions from the amount present in Green Boost.
