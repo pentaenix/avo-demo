@@ -1,43 +1,40 @@
-# AvoKind Green Boost demo
+# AvoKind prototype
 
-Static frontend demo of the Green Boost product page. No build step or runtime dependencies are required.
+Static multi-page AvoKind design prototype, prepared to deploy automatically with GitHub Pages.
 
-## Included
+## Pages
 
-- Responsive product page
-- Mouse/touch product gallery with square thumbnail navigation
-- 15- and 30-serving size options
-- 1/2/3-pouch quantity options
-- One-time and flexible subscription interactions
-- Looping, draggable ingredient carousel
-- Ingredient research drawers with cited sources
-- Product and FAQ structured data
-- Review-safe `noindex` configuration
-- GitHub Pages deployment workflow
-- Frontend/SEO validation workflow
+- `site/index.html` — Home
+- `site/shop.html` — Shop / Green Boost PDP
+- `site/benefits.html` — Benefits
+- `site/recipes.html` — Recipes
 
 ## Local preview
+
+```bash
+./run
+```
+
+Then open `http://localhost:8080`.
+
+Or run directly:
 
 ```bash
 python3 -m http.server 8080 -d site
 ```
 
-Open `http://localhost:8080`.
-
-Run validation with:
+## Validation
 
 ```bash
 node scripts/check.mjs
 ```
 
-## Publish as `avo-demo`
+## GitHub Pages
 
-You need Git and the GitHub CLI (`gh`) authenticated once with `gh auth login`.
+The repository is ready for the existing `avo-demo` workflow model. Pushing to `main` runs `.github/workflows/deploy-pages.yml`, validates the static site, uploads the `site/` directory, and deploys it with GitHub Pages.
 
-From this folder, run:
+If GitHub Pages on the repository is already configured to use **GitHub Actions**, replacing the repository contents with this codebase and pushing to `main` is enough.
 
-```bash
-./publish.sh
-```
+If Pages is not yet enabled, open **Settings → Pages → Build and deployment → Source** and choose **GitHub Actions** once.
 
-The script creates or updates the public `avo-demo` repository, enables GitHub Pages with GitHub Actions, pushes `main`, and prints the URL to share. The deployment is handled by `.github/workflows/deploy-pages.yml`.
+The site uses relative URLs so it works correctly at a project URL such as `https://<owner>.github.io/avo-demo/`.

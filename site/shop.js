@@ -1,5 +1,5 @@
 (() => {
-  const state = { size: 30, quantity: 1, plan: 'subscribe', cart: 0 };
+  const state = { size: 30, quantity: 1, plan: 'one-time', cart: Math.max(0, Number(localStorage.getItem('avokind-demo-cart-count') || 0) || 0) };
   const sizePrice = { 15: 29.99, 30: 59.99 };
   const quantityDiscount = { 1: 0, 2: 0.05, 3: 0.10 };
   const subscriptionDiscount = 0.10;
@@ -446,12 +446,20 @@
     showToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
   }
 
+  const syncCart = () => {
+    const countNode = $('[data-cart-count]');
+    const cartButton = $('[data-cart-button]');
+    if (countNode) countNode.textContent = state.cart;
+    if (cartButton) cartButton.setAttribute('aria-label', `Cart, ${state.cart} item${state.cart === 1 ? '' : 's'}`);
+    localStorage.setItem('avokind-demo-cart-count', String(state.cart));
+  };
+  syncCart();
   $$('[data-add-to-cart]').forEach((button) => button.addEventListener('click', () => {
     state.cart += state.quantity;
-    $('[data-cart-count]').textContent = state.cart;
+    syncCart();
     showToast(`${state.quantity} pouch${state.quantity === 1 ? '' : 'es'} added to cart.`);
   }));
-  $('[data-cart-button]')?.addEventListener('click', () => showToast(state.cart ? `Cart: ${state.cart} pouch${state.cart === 1 ? '' : 'es'}.` : 'Your cart is empty.'));
+  $('[data-cart-button]')?.addEventListener('click', () => showToast(state.cart ? `Demo cart: ${state.cart} pouch${state.cart === 1 ? '' : 'es'}.` : 'Your demo cart is empty.'));
 
   const menuButton = $('[data-menu-button]');
   const mobileNav = $('[data-mobile-nav]');
@@ -461,4 +469,104 @@
   });
 
   syncPurchaseUI();
+
+
+  function showPrototypeToast(message) {
+    let toast = document.querySelector('.global-cart-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.className = 'global-cart-toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('is-visible');
+    clearTimeout(showPrototypeToast.timer);
+    showPrototypeToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 1800);
+  }
+
+  // Demo review controls. Content is fictional and exists only for this design prototype.
+  const reviewFilters = $$('[data-review-filter]');
+  const ratingFilters = $$('[data-rating-filter]');
+  const reviewStatus = $('[data-review-status]');
+  const reviewSort = $('[data-review-sort]');
+  const reviewList = $('[data-review-list]');
+  const reviewCards = $$('[data-review-card]');
+  const reviewEmpty = $('[data-review-empty]');
+  const filterToggle = $('[data-review-filter-toggle]');
+  const filterDrawer = $('[data-review-filter-drawer]');
+  const reviewTabs = $$('[data-review-tab]');
+  const reviewPanels = $$('[data-review-panel]');
+  const demoWriteButtons = $$('[data-demo-review-write]');
+  let activeTopic = 'All';
+  let activeRating = null;
+
+  function applyReviews() {
+    let visible = reviewCards.filter((card) => {
+      const topics = (card.dataset.topics || '').split(/\s+/);
+      const topicMatch = activeTopic === 'All' || topics.includes(activeTopic);
+      const ratingMatch = activeRating === null || Number(card.dataset.rating || 0) === activeRating;
+      return topicMatch && ratingMatch;
+    });
+    const mode = reviewSort?.value || 'recent';
+    visible.sort((a,b) => {
+      if (mode === 'recent') return (b.dataset.date || '').localeCompare(a.dataset.date || '');
+      if (mode === 'high') return Number(b.dataset.rating || 0) - Number(a.dataset.rating || 0);
+      if (mode === 'low') return Number(a.dataset.rating || 0) - Number(b.dataset.rating || 0);
+      return Number(b.dataset.helpful || 0) - Number(a.dataset.helpful || 0);
+    });
+    visible.forEach(card => reviewList?.appendChild(card));
+    reviewCards.forEach(card => card.hidden = !visible.includes(card));
+    if (reviewEmpty) reviewEmpty.hidden = visible.length !== 0;
+    if (reviewStatus) {
+      const filtered = activeTopic !== 'All' || activeRating !== null;
+      reviewStatus.textContent = filtered ? `${visible.length} matching review${visible.length === 1 ? '' : 's'}` : '34 reviews';
+    }
+  }
+
+  reviewFilters.forEach((button) => button.addEventListener('click', () => {
+    activeTopic = button.dataset.reviewFilter || 'All';
+    reviewFilters.forEach((b) => b.classList.toggle('is-active', b === button));
+    applyReviews();
+  }));
+  ratingFilters.forEach((button) => button.addEventListener('click', () => {
+    const value = Number(button.dataset.ratingFilter || 0);
+    activeRating = activeRating === value ? null : value;
+    ratingFilters.forEach((b) => b.classList.toggle('is-active', Number(b.dataset.ratingFilter || 0) === activeRating));
+    applyReviews();
+  }));
+  reviewSort?.addEventListener('change', applyReviews);
+  filterToggle?.addEventListener('click', () => {
+    const next = filterDrawer?.hasAttribute('hidden');
+    if (!filterDrawer) return;
+    filterDrawer.toggleAttribute('hidden', !next);
+    filterToggle.setAttribute('aria-expanded', String(next));
+    const symbol = filterToggle.querySelector('span');
+    if (symbol) symbol.textContent = next ? '−' : '＋';
+  });
+  reviewTabs.forEach((tab) => tab.addEventListener('click', () => {
+    const target = tab.dataset.reviewTab;
+    reviewTabs.forEach((t) => {
+      const active = t === tab;
+      t.classList.toggle('is-active', active);
+      t.setAttribute('aria-selected', String(active));
+    });
+    reviewPanels.forEach((panel) => panel.hidden = panel.dataset.reviewPanel !== target);
+  }));
+  demoWriteButtons.forEach((button) => button.addEventListener('click', () => {
+    showPrototypeToast(button.textContent?.includes('Question') ? 'Question form is not connected in this demo.' : 'Review submission is not connected in this demo.');
+  }));
+  $$('.review-helpful').forEach((group) => {
+    const buttons = $$('button', group);
+    buttons.forEach((button) => button.addEventListener('click', () => {
+      const wasPressed = button.getAttribute('aria-pressed') === 'true';
+      buttons.forEach((other) => other.setAttribute('aria-pressed', 'false'));
+      if (!wasPressed) button.setAttribute('aria-pressed', 'true');
+      showPrototypeToast(wasPressed ? 'Helpful vote removed.' : 'Thanks for the feedback.');
+    }));
+  });
+  applyReviews();
+  applyReviews();
+
 })();

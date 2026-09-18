@@ -1,3 +1,2 @@
-# Review mock: intentionally excluded from indexing.
 User-agent: *
 Disallow: /

@@ -224,3 +224,32 @@ main>section{max-width:var(--max);margin:0 auto}.section-pad{padding:80px 28px}h
   font-size:8px;
   line-height:1.45;
 }
+
+/* v3.7 — semantic nutrition table replaces nutrition image */
+.nutrition-table-wrap{background:#fff;border:1px solid #d7d1c8;padding:clamp(22px,3vw,36px);align-self:stretch;display:flex;flex-direction:column;justify-content:center}
+.nutrition-table{width:100%;border-collapse:collapse;font-size:14px;color:#20231f}
+.nutrition-table caption{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.nutrition-table thead th{font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:#687068;padding:0 0 12px;border-bottom:2px solid #20231f;text-align:left}
+.nutrition-table thead th:last-child{text-align:right}
+.nutrition-table tbody th,.nutrition-table tbody td{padding:13px 0;border-bottom:1px solid #d8d4cc}
+.nutrition-table tbody th{text-align:left;font-weight:500}
+.nutrition-table tbody td{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.nutrition-table tbody tr:first-child th,.nutrition-table tbody tr:first-child td{font-weight:700}
+.nutrition-note{margin:14px 0 0;font-size:10px;line-height:1.5;color:#6d716b}
+@media(max-width:1180px){.nutrition-table-wrap{margin-top:4px}}
+
+/* ---------- v3.10: small-type legibility ---------- */
+.product-eyebrow,.option-label,.frequency-title{font-size:12px}
+.save-badge{font-size:10px}
+.quantity-name{font-size:12px}
+.quantity-card small,.quantity-card>span:last-child{font-size:10.5px}
+.frequency-main small{font-size:11px}.frequency-per{font-size:10.5px}
+.delivery-note{font-size:12px}.product-summary{font-size:13px}
+.purchase-accordion summary{font-size:13px}.purchase-accordion p{font-size:12px}
+.research-stats span{font-size:12px}
+.nutrition-grid span{font-size:11px}.fine-print{font-size:11px!important}
+.benefits-grid article>span{font-size:11px}.benefits-grid p{font-size:13px}
+.footer-bottom{font-size:11px}
+.drawer-research a{font-size:10.5px}.drawer-research small{font-size:9.5px}
+.nutrition-table thead th{font-size:11px}.nutrition-note{font-size:11px}
+.mobile-buy-bar span{font-size:11px}
