@@ -1,4 +1,4 @@
-# AvoKind prototype v3.16
+# AvoKind prototype v3.17
 
 Static multi-page AvoKind design prototype, prepared to deploy automatically with GitHub Pages.
 
@@ -53,5 +53,9 @@ The homepage product film is split into three explicit scroll chapters: 01 Scoop
 The preparation demo now uses a smaller sticky film beside three normal-flow text chapters. Scoop, Stir, and Enjoy move naturally with page scroll while the same scroll position directly drives the video. The film no longer dominates the viewport, and the active chapter is indicated only with a subtle opacity change.
 
 
-## v3.16 smooth scroll renderer
+## v3.17 smooth scroll renderer
 The preparation demo now renders from a compact 130-frame WebP sequence on canvas instead of repeatedly seeking an MP4. Adjacent source frames are blended at the browser refresh rate, and large scroll jumps are caught up over a short bounded interval. This keeps fast wheel and trackpad movement responsive without the visible seek-choppiness of the previous implementation. The sequence is warmed in the background before the visitor reaches the routine section.
+
+
+### v3.17
+The Home preparation scrollytelling block is now compact: its desktop height is governed by the video itself, with the three text steps fitting alongside it rather than creating several viewport-heights of page length.
