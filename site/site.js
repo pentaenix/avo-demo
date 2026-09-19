@@ -306,9 +306,22 @@
 
     desiredState = nextState;
 
-    // Text follows the semantic destination, while the film catches up at its own speed.
-    const activeIndex = clamp(desiredState - 1, 0, 2);
-    steps.forEach((step, index) => step.classList.toggle('is-active', index === activeIndex));
+    // The copy remains native scroll content. Focus is continuous rather than snapping:
+    // whichever step is nearest the sticky film gets the strongest treatment.
+    const mediaRect = media.getBoundingClientRect();
+    const focusY = mediaRect.top + mediaRect.height * .5;
+    let nearestIndex = 0;
+    let nearestDistance = Infinity;
+    steps.forEach((step, index) => {
+      const rect = step.getBoundingClientRect();
+      const center = rect.top + rect.height * .5;
+      const distance = Math.abs(center - focusY);
+      if (distance < nearestDistance) { nearestDistance = distance; nearestIndex = index; }
+      const focus = clamp01(1 - distance / Math.max(window.innerHeight * .43, 240));
+      step.style.opacity = String(.30 + focus * .70);
+      step.style.transform = `translateY(${(1 - focus) * 5}px)`;
+    });
+    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearestIndex));
 
     // Prioritize the path between the current frame and the new destination. A fast fling can
     // jump from Scoop to Enjoy, but playback will still traverse every frame in between.
