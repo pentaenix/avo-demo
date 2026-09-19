@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
+  <link rel="stylesheet" href="./brand.css">
+  <meta name="description" content="Contact AvoKind about Green Boost, ingredients, orders, wholesale, press, or general questions. Email contact@avokind.com.">
+  <title>Contact AvoKind | Questions, Orders &amp; Support</title>
+
+</head>
+<body class="">
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="announcement-bar">REAL WHOLE FOODS · NOTHING ELSE</div>
+<header class="avk-header">
+  <div class="avk-header-inner">
+    <a class="brand-logo" href="./index.html" aria-label="AvoKind home"><img src="./assets/avokind-wordmark-clean.png" alt="AvoKind"></a>
+    <nav class="avk-nav" aria-label="Primary navigation">
+      <a href="./shop.html">Shop</a>
+      <a href="./benefits.html">Benefits</a>
+      <a href="./recipes.html">Recipes</a>
+    </nav>
+    <div class="avk-actions">
+      <button class="avk-cart-button" type="button" data-cart-button aria-label="Cart, 0 items"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l1.8 10.1a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 2-1.6L20 7H6.1M9.5 20a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm8 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z"/></svg><span class="cart-count" data-cart-count>0</span></button>
+      <button class="avk-menu-button" type="button" aria-label="Open menu" aria-expanded="false" data-menu-button><span></span><span></span><span></span></button>
+    </div>
+  </div>
+  <nav class="avk-mobile-nav" data-mobile-nav aria-label="Mobile navigation">
+    <a href="./shop.html">Shop</a>
+    <a href="./benefits.html">Benefits</a>
+    <a href="./recipes.html">Recipes</a>
+  </nav>
+</header>
+<main id="main">
+<section class="content-hero">
+  <div class="content-hero-inner"><div><p class="eyebrow">Contact</p><h1>We are here<br><em>when you need us.</em></h1></div><p class="content-hero-copy">Questions about Green Boost, an order, ingredients, wholesale, press, or working with AvoKind? Send us a note.</p></div>
+</section>
+<section class="content-shell">
+  <div class="contact-grid">
+    <aside class="contact-panel"><p class="eyebrow">Contact us</p><h2>Start with the easiest route.</h2><p>You may find the answer in our FAQ. If not, email us directly or use the form and your email app will open with the message ready to send.</p><div class="contact-meta"><div><b>Email</b><a href="mailto:contact@avokind.com">contact@avokind.com</a></div><div><b>Response time</b><span>Please allow 1–2 business days.</span></div><div><b>Quick answers</b><a href="./faq.html">Read the FAQ →</a></div></div></aside>
+    <form class="contact-form" data-contact-form>
+      <div class="contact-field"><label for="contact-name">Name</label><input id="contact-name" name="name" autocomplete="name" required></div>
+      <div class="contact-field"><label for="contact-email">Email</label><input id="contact-email" name="email" type="email" autocomplete="email" required></div>
+      <div class="contact-field full"><label for="contact-subject">Subject</label><input id="contact-subject" name="subject" required></div>
+      <div class="contact-field full"><label for="contact-message">Message</label><textarea id="contact-message" name="message" required></textarea></div>
+      <button class="btn btn-dark" type="submit">Email AvoKind <span aria-hidden="true">→</span></button>
+      <p class="contact-note">This static demo opens your default email app instead of sending data to a server.</p>
+    </form>
+  </div>
+</section></main>
+<footer class="brand-footer site-footer">
+  <div class="footer-waves" aria-hidden="true"></div>
+  <div class="brand-footer-inner footer-inner">
+    <div class="footer-brand-block">
+      <img class="footer-logo" src="./assets/avokind-wordmark-clean.png" alt="AvoKind">
+      <p>Whole-food smoothie nutrition made to fit real life.</p>
+      <a class="footer-email" href="mailto:contact@avokind.com">contact@avokind.com</a>
+    </div>
+    <div><strong>Explore</strong><a href="./shop.html">Shop</a><a href="./benefits.html">Benefits</a><a href="./recipes.html">Recipes</a><a href="./shop.html#ingredients">Ingredients</a></div>
+    <div><strong>Company</strong><a href="./about.html">About Us</a><a href="./blog.html">Blog</a><a href="./contact.html">Contact</a></div>
+    <div><strong>Help</strong><a href="./faq.html">FAQ</a><a href="./shop.html#reviews">Reviews</a><a href="./benefits.html#process">Freeze-drying</a></div>
+  </div>
+  <div class="footer-callout">
+    <p>Kind to you.<br><em>Kind to the planet.</em></p>
+    <a href="./about.html">Our story <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="brand-footer-bottom footer-bottom"><span>© 2026 AvoKind</span><span>Real Whole Foods. Nothing Else.</span></div>
+</footer>
+<script src="./site.js" defer></script>
+<script>document.querySelector('[data-contact-form]')?.addEventListener('submit',function(e){e.preventDefault();const f=new FormData(this);const subject=encodeURIComponent(f.get('subject')||'AvoKind website question');const body=encodeURIComponent(`Name: ${f.get('name')||''}\nEmail: ${f.get('email')||''}\n\n${f.get('message')||''}`);window.location.href=`mailto:contact@avokind.com?subject=${subject}&body=${body}`;});</script>
+</body>
+</html>

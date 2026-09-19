@@ -1,0 +1,33 @@
+# AvoKind
+
+AvoKind makes Green Boost, a freeze-dried whole-food smoothie powder built around 12 recognizable fruits, vegetables, herbs and roots, with avocado at the center.
+
+## Primary pages
+- Home: ./index.html
+- Green Boost: ./shop.html
+- Benefits and ingredients: ./benefits.html
+- Recipes: ./recipes.html
+- About AvoKind: ./about.html
+- FAQ: ./faq.html
+- Contact: ./contact.html
+- AvoKind Journal: ./blog.html
+
+## Educational articles
+- What are the benefits of avocado?: ./blog/benefits-of-avocado.html
+- What is nopal? Nutrition, fiber, and what the research says: ./blog/what-is-nopal.html
+- Does freeze-drying preserve nutrients?: ./blog/does-freeze-drying-preserve-nutrients.html
+- What is dietary fiber, and why does it matter?: ./blog/dietary-fiber-benefits.html
+- Are smoothies healthy? What changes when you blend whole foods: ./blog/are-smoothies-healthy.html
+- What are the benefits of spinach?: ./blog/benefits-of-spinach.html
+- Does ginger have health benefits? What human studies actually show: ./blog/ginger-benefits.html
+- What are the benefits of turmeric? Curcumin evidence and its limits: ./blog/turmeric-benefits.html
+- Why do some vitamins need fat? Fat-soluble vitamins and carotenoid absorption: ./blog/fat-soluble-vitamins-and-dietary-fat.html
+- Added sugar vs. natural sugar: what is the difference?: ./blog/added-sugar-vs-natural-sugar.html
+
+## Editorial principles
+- Articles are authored by AvoKind and include publication dates, direct source links, and an APA citation for the article itself.
+- Prefer human trials, systematic reviews, government nutrition resources, and primary food-composition sources.
+- Distinguish general ingredient evidence from claims about the finished Green Boost product.
+- Distinguish whole foods from extracts, isolates, and supplement doses.
+- Avoid disease-treatment or disease-prevention claims unless describing a cited study or public-health source with appropriate limitations.
+- When evidence is mixed or low-certainty, say so.

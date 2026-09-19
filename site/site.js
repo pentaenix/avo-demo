@@ -167,8 +167,11 @@
   });
 })();
 
-// v3.16 — Integrated scrollytelling. A pre-rendered frame sequence avoids repeated video seeks,
-// so fast wheel/trackpad movement stays fluid while the page's native scroll still drives the story.
+// v3.18 — Directional step playback.
+// Scroll chooses a semantic destination (start / Scoop / Stir / Enjoy), but it no longer
+// scrubs individual frames. The film plays toward that destination at its own smooth rate.
+// Fast scrolling therefore queues later steps instead of skipping/chopping through frames,
+// and scrolling back simply plays the same footage in reverse.
 (() => {
   const section = document.querySelector('[data-scroll-routine]');
   const canvas = document.querySelector('[data-scroll-routine-canvas]');
@@ -185,22 +188,20 @@
   ctx.imageSmoothingQuality = 'high';
 
   const FRAME_COUNT = 130;
-  const DURATION = 5.422089;
+  const SOURCE_FPS = 24;
+  const PLAYBACK_RATE = 1.08;
+  const PLAYBACK_FPS = SOURCE_FPS * PLAYBACK_RATE;
   const frames = new Array(FRAME_COUNT);
   const loaded = new Uint8Array(FRAME_COUNT);
-  let targetFrame = 0;
+
+  // Four resting positions create three real film actions:
+  // start -> Scoop -> Stir -> Enjoy.
+  const anchors = [0, 62, 111, FRAME_COUNT - 1];
+  let desiredState = 0;
   let shownFrame = 0;
   let lastFrame = performance.now();
   let raf = 0;
   let lastDrawn = -1;
-
-  // The three chapters keep the same semantic cuts as v3.15. The visual renderer now
-  // traverses the source frames smoothly instead of asking <video> to seek on every tick.
-  const ranges = [
-    { t0:0.00, t1:2.62 },
-    { t0:2.62, t1:4.66 },
-    { t0:4.66, t1:DURATION }
-  ];
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   const clamp01 = value => clamp(value, 0, 1);
@@ -219,8 +220,6 @@
     const b = loaded[next] ? frames[next] : null;
 
     if (!a && !b) {
-      // If the exact frame has not decoded yet, use the nearest decoded frame so the
-      // canvas never flashes blank while the rest of the sequence warms in cache.
       for (let offset = 1; offset < 12; offset += 1) {
         const left = base - offset;
         const right = base + offset;
@@ -236,8 +235,6 @@
     if (a) ctx.drawImage(a, 0, 0, canvas.width, canvas.height);
     else if (b) ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
 
-    // Blend adjacent source frames at the browser's refresh rate. This removes the
-    // 24fps "stepping" that becomes obvious when the user scrolls quickly.
     if (a && b && next !== base && mix > .02) {
       ctx.globalAlpha = mix;
       ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
@@ -261,14 +258,15 @@
     frames[index] = img;
   };
 
-  // Prime the opening frame and the beginning of each semantic chapter first.
-  [0, 1, 2, 62, 63, 64, 111, 112, 113, 129].forEach(index => loadFrame(index, true));
+  // Prime the rest frames and their immediate neighborhoods first.
+  anchors.forEach(anchor => {
+    for (let offset = -3; offset <= 3; offset += 1) loadFrame(anchor + offset, true);
+  });
 
-  // Warm the full 5 MB sequence in small batches so it is normally ready well before
-  // the visitor reaches this third-page block, without blocking the hero or navigation.
+  // Warm the small frame sequence before this lower-page section is reached.
   let preloadCursor = 0;
   const warmFrames = deadline => {
-    let budget = 8;
+    let budget = 10;
     while (preloadCursor < FRAME_COUNT && budget > 0 && (!deadline || deadline.timeRemaining() > 2)) {
       loadFrame(preloadCursor, false);
       preloadCursor += 1;
@@ -276,75 +274,65 @@
     }
     if (preloadCursor < FRAME_COUNT) {
       if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:120 });
-      else setTimeout(() => warmFrames(null), 36);
+      else setTimeout(() => warmFrames(null), 32);
     }
   };
   if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:80 });
   else setTimeout(() => warmFrames(null), 24);
 
-  const getScrollBoundaries = () => {
+  // Scroll only selects which step the film should have completed. It never selects a frame.
+  // The first threshold sits just above Scoop, giving us a true start state for reverse playback.
+  const getThresholds = () => {
     const viewportCenter = window.innerHeight * .5;
-    const anchors = steps.map(step => {
+    const centers = steps.map(step => {
       const rect = step.getBoundingClientRect();
-      const absoluteCenter = window.scrollY + rect.top + rect.height * .5;
-      return absoluteCenter - viewportCenter;
+      return window.scrollY + rect.top + rect.height * .5 - viewportCenter;
     });
-    const gap01 = anchors[1] - anchors[0];
-    const gap12 = anchors[2] - anchors[1];
+    const d01 = Math.max(1, centers[1] - centers[0]);
     return [
-      anchors[0] - gap01 * .5,
-      (anchors[0] + anchors[1]) * .5,
-      (anchors[1] + anchors[2]) * .5,
-      anchors[2] + gap12 * .5
+      centers[0] - d01 * .52,
+      (centers[0] + centers[1]) * .5,
+      (centers[1] + centers[2]) * .5
     ];
   };
 
-  const updateTarget = () => {
-    const boundaries = getScrollBoundaries();
+  const updateDestination = () => {
     const y = window.scrollY;
-    let stage = 0;
-    if (y >= boundaries[2]) stage = 2;
-    else if (y >= boundaries[1]) stage = 1;
+    const t = getThresholds();
+    let nextState = 0;
+    if (y >= t[2]) nextState = 3;
+    else if (y >= t[1]) nextState = 2;
+    else if (y >= t[0]) nextState = 1;
 
-    const local = clamp01((y - boundaries[stage]) / Math.max(1, boundaries[stage + 1] - boundaries[stage]));
-    const eased = smoothstep(local);
-    const range = ranges[stage];
-    const targetTime = range.t0 + (range.t1 - range.t0) * eased;
-    targetFrame = (targetTime / DURATION) * (FRAME_COUNT - 1);
+    desiredState = nextState;
 
-    // Keep the visual chapter cue smooth as normal page content passes the viewport center.
-    const viewportCenter = window.innerHeight * .5;
-    let nearest = 0;
-    let nearestDistance = Infinity;
-    steps.forEach((step, index) => {
-      const rect = step.getBoundingClientRect();
-      const distance = Math.abs((rect.top + rect.height * .5) - viewportCenter);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = index;
-      }
-    });
-    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearest));
+    // Text follows the semantic destination, while the film catches up at its own speed.
+    const activeIndex = clamp(desiredState - 1, 0, 2);
+    steps.forEach((step, index) => step.classList.toggle('is-active', index === activeIndex));
 
-    // Prioritize a small neighborhood around wherever a fast fling just moved the target.
-    const center = Math.round(targetFrame);
-    for (let offset = -6; offset <= 6; offset += 1) loadFrame(center + offset, true);
+    // Prioritize the path between the current frame and the new destination. A fast fling can
+    // jump from Scoop to Enjoy, but playback will still traverse every frame in between.
+    const target = anchors[desiredState];
+    const lo = Math.max(0, Math.floor(Math.min(shownFrame, target)) - 5);
+    const hi = Math.min(FRAME_COUNT - 1, Math.ceil(Math.max(shownFrame, target)) + 5);
+    for (let i = lo; i <= hi; i += 1) loadFrame(i, true);
   };
 
   const render = now => {
-    const dt = clamp((now - lastFrame) / 1000, .001, .04);
+    const dt = clamp((now - lastFrame) / 1000, .001, .05);
     lastFrame = now;
-    const error = targetFrame - shownFrame;
+    const target = anchors[desiredState];
+    const error = target - shownFrame;
 
-    // Fast response for small hand movements, but cap catch-up speed for large jumps.
-    // That cap is what turns a fast trackpad fling into continuous motion instead of a
-    // handful of violent seeks. It typically catches a full-stage jump in ~250–400 ms.
-    const naturalStep = error * (1 - Math.exp(-18 * dt));
-    const maxStep = .85 + Math.min(2.55, Math.abs(error) * .085);
-    shownFrame += clamp(naturalStep, -maxStep, maxStep);
-    if (Math.abs(error) < .015) shownFrame = targetFrame;
+    if (Math.abs(error) > .001) {
+      // The source motion now plays like film, not like a scrollbar. Scroll speed cannot make
+      // it stutter or skip; it only changes the destination. Reverse scroll reverses playback.
+      const step = PLAYBACK_FPS * dt;
+      shownFrame += Math.sign(error) * Math.min(Math.abs(error), step);
+    } else {
+      shownFrame = target;
+    }
 
-    // Drawing every animation frame allows sub-frame blending even though the source is 24fps.
     const drawKey = Math.round(shownFrame * 1000);
     if (drawKey !== lastDrawn) {
       draw(shownFrame);
@@ -353,9 +341,9 @@
     raf = requestAnimationFrame(render);
   };
 
-  window.addEventListener('scroll', updateTarget, { passive:true });
-  window.addEventListener('resize', updateTarget);
-  updateTarget();
+  window.addEventListener('scroll', updateDestination, { passive:true });
+  window.addEventListener('resize', updateDestination);
+  updateDestination();
   raf = requestAnimationFrame(render);
   window.addEventListener('pagehide', () => cancelAnimationFrame(raf), { once:true });
 })();
