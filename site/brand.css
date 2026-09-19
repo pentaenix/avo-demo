@@ -817,24 +817,30 @@ body.shop-page{background:var(--milk)!important;color:var(--close)!important;fon
 .routine-preamble-inner .lede{margin:0;color:#505a52;max-width:560px}
 .routine-preamble-inner .eyebrow{grid-column:1/-1;margin-bottom:-10px}
 
-/* Scroll-scrub product demo. Scroll position drives a seek-optimized film in both directions. */
-.scroll-routine{position:relative;height:300vh;background:#fff}
-.scroll-routine-sticky{position:sticky;top:0;height:100svh;min-height:620px;display:grid;place-items:center;overflow:hidden;background:#fff;isolation:isolate}
-.scroll-routine-media{position:relative;width:min(1520px,106vw);aspect-ratio:16/9;display:grid;place-items:center;overflow:hidden;z-index:1;background:#fff}
-/* Blend only the side edges and top into the white page. The bottom stays crisp so the tabletop/video base is not washed out. */
-.scroll-routine-media::before{content:"";position:absolute;inset:-3px;pointer-events:none;z-index:2;background:
-  linear-gradient(90deg,#fff 0%,rgba(255,255,255,.985) 3%,rgba(255,255,255,.78) 8%,rgba(255,255,255,.30) 14%,transparent 23%,transparent 77%,rgba(255,255,255,.30) 86%,rgba(255,255,255,.78) 92%,rgba(255,255,255,.985) 97%,#fff 100%),
-  linear-gradient(180deg,#fff 0%,rgba(255,255,255,.985) 4%,rgba(255,255,255,.82) 9%,rgba(255,255,255,.34) 16%,transparent 27%,transparent 100%)}
+/* v3.16 — Integrated scrollytelling with a frame-sequence canvas for smooth high-speed scrubbing. */
+.scroll-routine{position:relative;background:#fff;border-top:1px solid rgba(23,24,23,.06);border-bottom:1px solid rgba(23,24,23,.06)}
+.scroll-routine-inner{max-width:var(--page);margin:0 auto;padding:0 var(--pad) 20svh;display:grid;grid-template-columns:minmax(300px,.72fr) minmax(500px,1.05fr);gap:clamp(54px,7vw,112px);align-items:start}
+.scroll-routine-copy{min-width:0}
+.scroll-routine-copy-step{min-height:70svh;display:flex;flex-direction:column;justify-content:center;padding:10svh 0;max-width:410px;opacity:.46;transition:opacity .16s ease,color .16s ease}
+.scroll-routine-copy-step+ .scroll-routine-copy-step{border-top:1px solid rgba(23,24,23,.10)}
+.scroll-routine-copy-step.is-active{opacity:1}
+.scroll-routine-index{display:block;margin-bottom:18px;font:650 11px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#7a827c}
+.scroll-routine-copy-step h3{margin:0 0 18px;font:500 clamp(42px,4.5vw,66px)/.9 var(--serif);font-style:italic;letter-spacing:-.045em;color:var(--rind)}
+.scroll-routine-copy-step p{margin:0;max-width:350px;font:400 16px/1.6 var(--sans);color:#4f5a51}
+.scroll-routine-media-column{position:sticky;top:15svh;height:55svh;display:flex;align-items:center;justify-content:center;align-self:start}
+.scroll-routine-media{position:relative;width:min(580px,46vw);aspect-ratio:16/9;display:grid;place-items:center;overflow:hidden;background:#fff;isolation:isolate}
+/* The footage dissolves into the page on the sides and top only; the tabletop stays crisp. */
+.scroll-routine-media::before{content:"";position:absolute;inset:-2px;pointer-events:none;z-index:2;background:
+  linear-gradient(90deg,#fff 0%,rgba(255,255,255,.995) 3%,rgba(255,255,255,.92) 7%,rgba(255,255,255,.58) 12%,rgba(255,255,255,.18) 17%,transparent 23%,transparent 77%,rgba(255,255,255,.18) 83%,rgba(255,255,255,.58) 88%,rgba(255,255,255,.92) 93%,rgba(255,255,255,.995) 97%,#fff 100%),
+  linear-gradient(180deg,#fff 0%,rgba(255,255,255,.995) 4%,rgba(255,255,255,.86) 9%,rgba(255,255,255,.42) 15%,rgba(255,255,255,.10) 21%,transparent 28%,transparent 100%)}
 .scroll-routine-media::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;background:
-  linear-gradient(90deg,rgba(255,255,255,.38),transparent 14%,transparent 86%,rgba(255,255,255,.38)),
-  linear-gradient(180deg,rgba(255,255,255,.34),transparent 18%,transparent 100%)}
-.scroll-routine-media video{width:100%;height:100%;object-fit:contain;display:block;background:#fff;filter:brightness(1.015) saturate(.96) contrast(.99)}
-.scroll-routine-word{--word-x:0px;--word-y:0px;position:absolute;z-index:3;left:50%;top:16%;transform:translate(calc(-50% + var(--word-x)),calc(var(--word-y) + 8px));font:500 clamp(38px,5.1vw,76px)/.92 var(--serif);font-style:italic;letter-spacing:-.04em;color:var(--rind);opacity:0;pointer-events:none;white-space:nowrap;text-shadow:0 1px 0 rgba(255,255,255,.95)}
-.scroll-routine-word.is-scoop{--word-x:96px;--word-y:192px}
-.scroll-routine-word.is-stir{--word-x:192px;--word-y:192px}
-.scroll-routine-word.is-enjoy{--word-x:0px;--word-y:0px}
-.scroll-routine-reduced{display:none;position:absolute;z-index:3;left:50%;bottom:7vh;transform:translateX(-50%);gap:26px;font:600 12px/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--rind)}
-
+  linear-gradient(90deg,rgba(255,255,255,.22),transparent 14%,transparent 86%,rgba(255,255,255,.22)),
+  linear-gradient(180deg,rgba(255,255,255,.18),transparent 16%,transparent 100%)}
+.scroll-routine-poster,.scroll-routine-media canvas{width:100%;height:100%;display:block;background:#fff;filter:brightness(1.025) saturate(.94) contrast(.98)}
+.scroll-routine-poster{position:absolute;inset:0;object-fit:contain;z-index:0;transition:opacity .22s ease}
+.scroll-routine-media canvas{position:relative;z-index:1;opacity:0;transition:opacity .22s ease}
+.scroll-routine-media.is-frames-ready canvas{opacity:1}
+.scroll-routine-media.is-frames-ready .scroll-routine-poster{opacity:0}
 @media(max-width:1180px){
   .home-ingredient-card{flex-basis:calc((100% - 84px)/4)}
 }
@@ -844,29 +850,33 @@ body.shop-page{background:var(--milk)!important;color:var(--close)!important;fon
   .routine-preamble-inner{padding-left:18px;padding-right:18px}
   .routine-preamble-inner .eyebrow{grid-column:auto;margin-bottom:0}
   .home-ingredient-card{flex-basis:calc((100% - 42px)/2.25)}
-  .scroll-routine{height:270vh}
-  .scroll-routine-sticky{min-height:560px}
-  .scroll-routine-media{width:116vw}
-  .scroll-routine-word{top:14%;font-size:clamp(34px,9vw,58px)}
-  .scroll-routine-word.is-scoop{--word-x:54px;--word-y:132px}
-  .scroll-routine-word.is-stir{--word-x:92px;--word-y:132px}
+  .scroll-routine-inner{grid-template-columns:minmax(250px,.72fr) minmax(390px,1fr);gap:38px;padding-bottom:18svh}
+  .scroll-routine-copy-step{min-height:68svh}
+  .scroll-routine-media-column{top:17svh;height:50svh}
+  .scroll-routine-media{width:min(500px,52vw)}
 }
 @media(max-width:560px){
   .announcement-bar{font-size:10px}
   .home-ingredient-card{flex-basis:78%}
   .home-drawer-content{padding:58px 18px 70px}.home-drawer-content>img{height:280px}
-  .scroll-routine{height:245vh}
-  .scroll-routine-sticky{min-height:520px}
-  .scroll-routine-media{width:132vw}
-  .scroll-routine-word{top:12%;font-size:clamp(32px,10vw,50px)}
-  .scroll-routine-word.is-scoop{--word-x:28px;--word-y:108px}
-  .scroll-routine-word.is-stir{--word-x:46px;--word-y:108px}
+  .scroll-routine-inner{display:block;padding:0 18px 20svh}
+  .scroll-routine-copy{position:relative;z-index:2}
+  .scroll-routine-copy-step{min-height:66svh;padding:12svh 0;max-width:76%;position:relative;z-index:3}
+  .scroll-routine-copy-step:nth-child(even){margin-left:auto}
+  .scroll-routine-copy-step h3{font-size:clamp(42px,13vw,58px)}
+  .scroll-routine-copy-step p{font-size:15px}
+  .scroll-routine-media-column{position:absolute;left:0;right:0;top:0;height:100%;pointer-events:none;z-index:1;display:block}
+  .scroll-routine-media{position:sticky;top:31svh;width:100%;max-width:none;aspect-ratio:16/9;opacity:.70}
+  .scroll-routine-copy-step.is-active{opacity:1}
+  .scroll-routine-copy-step:not(.is-active){opacity:.28}
 }
 @media(prefers-reduced-motion:reduce){
-  .scroll-routine{height:auto;padding:60px 0}
-  .scroll-routine-sticky{position:relative;height:auto;min-height:0;display:block}
-  .scroll-routine-media{width:min(1100px,94vw);margin:0 auto;-webkit-mask-image:none;mask-image:none}
-  .scroll-routine-media::after{background:linear-gradient(90deg,rgba(255,255,255,.3),transparent 14%,transparent 86%,rgba(255,255,255,.3)),linear-gradient(180deg,rgba(255,255,255,.28),transparent 18%,transparent 100%)}
-  .scroll-routine-word{display:none}
-  .scroll-routine-reduced{display:flex;position:static;transform:none;justify-content:center;margin:24px auto 0}
+  .scroll-routine-inner{display:block;padding-top:56px;padding-bottom:56px}
+  .scroll-routine-copy{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+  .scroll-routine-copy-step{min-height:0;padding:0;opacity:1;border-top:0!important}
+  .scroll-routine-media-column{position:relative;top:auto;height:auto;display:block;margin-top:44px}
+  .scroll-routine-media{position:relative;top:auto;transform:none;width:min(720px,100%);margin:0 auto}
+  .scroll-routine-media canvas{display:none}
+  .scroll-routine-poster{position:relative;opacity:1!important}
+  .scroll-routine-media{aspect-ratio:16/9}
 }

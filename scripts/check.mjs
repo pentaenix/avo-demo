@@ -45,8 +45,13 @@ const assetsDir = join(root, 'assets');
 expect(await exists(assetsDir), 'Missing site/assets directory.');
 if (await exists(assetsDir)) {
   const assets = await readdir(assetsDir);
-  expect(assets.includes('routine-scroll.mp4'), 'Missing scroll-controlled routine video.');
-  expect(assets.includes('routine-scroll-poster.jpg'), 'Missing routine video poster.');
+  expect(assets.includes('routine-scroll-poster.jpg'), 'Missing routine sequence poster.');
+  expect(assets.includes('routine-frames'), 'Missing scroll-controlled routine frame sequence.');
+  const framesDir = join(assetsDir, 'routine-frames');
+  if (await exists(framesDir)) {
+    const frames = (await readdir(framesDir)).filter(name => /^frame_\d{3}\.webp$/.test(name));
+    expect(frames.length === 130, `Expected 130 routine frames; found ${frames.length}.`);
+  }
   expect(assets.includes('avokind-wordmark-clean.png'), 'Missing AvoKind wordmark.');
 }
 

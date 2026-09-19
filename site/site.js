@@ -167,95 +167,195 @@
   });
 })();
 
-// v3.11 — Scroll-controlled preparation film with spring inertia and per-word placement.
+// v3.16 — Integrated scrollytelling. A pre-rendered frame sequence avoids repeated video seeks,
+// so fast wheel/trackpad movement stays fluid while the page's native scroll still drives the story.
 (() => {
   const section = document.querySelector('[data-scroll-routine]');
-  const video = document.querySelector('[data-scroll-routine-video]');
-  const word = document.querySelector('[data-routine-word]');
-  if (!section || !video || !word) return;
+  const canvas = document.querySelector('[data-scroll-routine-canvas]');
+  const media = document.querySelector('[data-scroll-routine-media]');
+  const steps = [...document.querySelectorAll('[data-routine-copy-step]')];
+  if (!section || !canvas || !media || steps.length !== 3) return;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduced.matches) return;
 
-  let duration = 5.422;
-  let targetTime = 0;
-  let shownTime = 0;
-  let velocity = 0;
-  let raf = 0;
-  let lastFrame = performance.now();
+  const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
-  const alphaWindow = (time, start, fadeInEnd, fadeOutStart, end) => {
-    if (time < start || time > end) return 0;
-    if (time < fadeInEnd) return (time - start) / Math.max(.001, fadeInEnd - start);
-    if (time <= fadeOutStart) return 1;
-    return 1 - (time - fadeOutStart) / Math.max(.001, end - fadeOutStart);
+  const FRAME_COUNT = 130;
+  const DURATION = 5.422089;
+  const frames = new Array(FRAME_COUNT);
+  const loaded = new Uint8Array(FRAME_COUNT);
+  let targetFrame = 0;
+  let shownFrame = 0;
+  let lastFrame = performance.now();
+  let raf = 0;
+  let lastDrawn = -1;
+
+  // The three chapters keep the same semantic cuts as v3.15. The visual renderer now
+  // traverses the source frames smoothly instead of asking <video> to seek on every tick.
+  const ranges = [
+    { t0:0.00, t1:2.62 },
+    { t0:2.62, t1:4.66 },
+    { t0:4.66, t1:DURATION }
+  ];
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const clamp01 = value => clamp(value, 0, 1);
+  const smoothstep = value => {
+    const x = clamp01(value);
+    return x * x * (3 - 2 * x);
+  };
+  const frameUrl = index => `./assets/routine-frames/frame_${String(index + 1).padStart(3, '0')}.webp`;
+
+  const draw = frameFloat => {
+    const f = clamp(frameFloat, 0, FRAME_COUNT - 1);
+    const base = Math.floor(f);
+    const next = Math.min(FRAME_COUNT - 1, base + 1);
+    const mix = smoothstep(f - base);
+    const a = loaded[base] ? frames[base] : null;
+    const b = loaded[next] ? frames[next] : null;
+
+    if (!a && !b) {
+      // If the exact frame has not decoded yet, use the nearest decoded frame so the
+      // canvas never flashes blank while the rest of the sequence warms in cache.
+      for (let offset = 1; offset < 12; offset += 1) {
+        const left = base - offset;
+        const right = base + offset;
+        if (left >= 0 && loaded[left]) return draw(left);
+        if (right < FRAME_COUNT && loaded[right]) return draw(right);
+      }
+      return;
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (a) ctx.drawImage(a, 0, 0, canvas.width, canvas.height);
+    else if (b) ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
+
+    // Blend adjacent source frames at the browser's refresh rate. This removes the
+    // 24fps "stepping" that becomes obvious when the user scrolls quickly.
+    if (a && b && next !== base && mix > .02) {
+      ctx.globalAlpha = mix;
+      ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = 1;
+    }
   };
 
-  const wordFor = (time) => {
-    const windows = [
-      ['Scoop', alphaWindow(time, .70, .85, 1.30, 1.72)],
-      ['Stir', alphaWindow(time, 3.10, 3.25, 3.70, 4.08)],
-      ['Enjoy', alphaWindow(time, 4.55, 4.70, 5.00, 5.30)]
+  const loadFrame = (index, priority = false) => {
+    if (index < 0 || index >= FRAME_COUNT || frames[index]) return;
+    const img = new Image();
+    img.decoding = 'async';
+    try { img.fetchPriority = priority ? 'high' : 'low'; } catch (_) {}
+    img.onload = () => {
+      loaded[index] = 1;
+      if (index === 0) {
+        draw(0);
+        media.classList.add('is-frames-ready');
+      }
+    };
+    img.src = frameUrl(index);
+    frames[index] = img;
+  };
+
+  // Prime the opening frame and the beginning of each semantic chapter first.
+  [0, 1, 2, 62, 63, 64, 111, 112, 113, 129].forEach(index => loadFrame(index, true));
+
+  // Warm the full 5 MB sequence in small batches so it is normally ready well before
+  // the visitor reaches this third-page block, without blocking the hero or navigation.
+  let preloadCursor = 0;
+  const warmFrames = deadline => {
+    let budget = 8;
+    while (preloadCursor < FRAME_COUNT && budget > 0 && (!deadline || deadline.timeRemaining() > 2)) {
+      loadFrame(preloadCursor, false);
+      preloadCursor += 1;
+      budget -= 1;
+    }
+    if (preloadCursor < FRAME_COUNT) {
+      if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:120 });
+      else setTimeout(() => warmFrames(null), 36);
+    }
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:80 });
+  else setTimeout(() => warmFrames(null), 24);
+
+  const getScrollBoundaries = () => {
+    const viewportCenter = window.innerHeight * .5;
+    const anchors = steps.map(step => {
+      const rect = step.getBoundingClientRect();
+      const absoluteCenter = window.scrollY + rect.top + rect.height * .5;
+      return absoluteCenter - viewportCenter;
+    });
+    const gap01 = anchors[1] - anchors[0];
+    const gap12 = anchors[2] - anchors[1];
+    return [
+      anchors[0] - gap01 * .5,
+      (anchors[0] + anchors[1]) * .5,
+      (anchors[1] + anchors[2]) * .5,
+      anchors[2] + gap12 * .5
     ];
-    return windows.reduce((best, item) => item[1] > best[1] ? item : best, ['',0]);
   };
 
   const updateTarget = () => {
-    const top = section.offsetTop;
-    const travel = Math.max(1, section.offsetHeight - window.innerHeight);
-    const raw = Math.min(1, Math.max(0, (window.scrollY - top) / travel));
-    // Keep only a brief clean hold on the last frame so the section never feels sticky for too long.
-    const timelineProgress = Math.min(1, raw / .965);
-    targetTime = duration * timelineProgress;
+    const boundaries = getScrollBoundaries();
+    const y = window.scrollY;
+    let stage = 0;
+    if (y >= boundaries[2]) stage = 2;
+    else if (y >= boundaries[1]) stage = 1;
+
+    const local = clamp01((y - boundaries[stage]) / Math.max(1, boundaries[stage + 1] - boundaries[stage]));
+    const eased = smoothstep(local);
+    const range = ranges[stage];
+    const targetTime = range.t0 + (range.t1 - range.t0) * eased;
+    targetFrame = (targetTime / DURATION) * (FRAME_COUNT - 1);
+
+    // Keep the visual chapter cue smooth as normal page content passes the viewport center.
+    const viewportCenter = window.innerHeight * .5;
+    let nearest = 0;
+    let nearestDistance = Infinity;
+    steps.forEach((step, index) => {
+      const rect = step.getBoundingClientRect();
+      const distance = Math.abs((rect.top + rect.height * .5) - viewportCenter);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = index;
+      }
+    });
+    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearest));
+
+    // Prioritize a small neighborhood around wherever a fast fling just moved the target.
+    const center = Math.round(targetFrame);
+    for (let offset = -6; offset <= 6; offset += 1) loadFrame(center + offset, true);
   };
 
-  const setWordState = (label, alpha) => {
-    word.textContent = label;
-    word.classList.toggle('is-scoop', label === 'Scoop');
-    word.classList.toggle('is-stir', label === 'Stir');
-    word.classList.toggle('is-enjoy', label === 'Enjoy');
-    word.style.opacity = alpha.toFixed(3);
-    // The last few pixels of movement are tied to opacity so words settle rather than pop in.
-    const settle = Math.round((1 - alpha) * 8);
-    word.style.transform = `translate(calc(-50% + var(--word-x)), calc(var(--word-y) + ${settle}px))`;
-  };
-
-  const render = (now) => {
-    const dt = Math.min(.034, Math.max(.001, (now - lastFrame) / 1000));
+  const render = now => {
+    const dt = clamp((now - lastFrame) / 1000, .001, .04);
     lastFrame = now;
+    const error = targetFrame - shownFrame;
 
-    // Damped spring: quick response while scrolling, then a short inertial settle after input stops.
-    const spring = 34;
-    const damping = 8.8;
-    const acceleration = (targetTime - shownTime) * spring - velocity * damping;
-    velocity += acceleration * dt;
-    velocity = Math.max(-7.5, Math.min(7.5, velocity));
-    shownTime += velocity * dt;
+    // Fast response for small hand movements, but cap catch-up speed for large jumps.
+    // That cap is what turns a fast trackpad fling into continuous motion instead of a
+    // handful of violent seeks. It typically catches a full-stage jump in ~250–400 ms.
+    const naturalStep = error * (1 - Math.exp(-18 * dt));
+    const maxStep = .85 + Math.min(2.55, Math.abs(error) * .085);
+    shownFrame += clamp(naturalStep, -maxStep, maxStep);
+    if (Math.abs(error) < .015) shownFrame = targetFrame;
 
-    if (shownTime < 0) { shownTime = 0; velocity *= .35; }
-    if (shownTime > duration) { shownTime = duration; velocity *= .35; }
-    if (Math.abs(targetTime - shownTime) < .0015 && Math.abs(velocity) < .004) {
-      shownTime = targetTime; velocity = 0;
+    // Drawing every animation frame allows sub-frame blending even though the source is 24fps.
+    const drawKey = Math.round(shownFrame * 1000);
+    if (drawKey !== lastDrawn) {
+      draw(shownFrame);
+      lastDrawn = drawKey;
     }
-
-    if (Number.isFinite(video.duration) && Math.abs(video.currentTime - shownTime) > .009) {
-      try { video.currentTime = Math.max(0, Math.min(duration, shownTime)); } catch (_) {}
-    }
-
-    const [label, alpha] = wordFor(shownTime);
-    setWordState(label, alpha);
     raf = requestAnimationFrame(render);
   };
 
-  video.addEventListener('loadedmetadata', () => {
-    if (Number.isFinite(video.duration) && video.duration > 0) duration = video.duration;
-    video.pause(); video.currentTime = 0;
-    updateTarget();
-  }, {once:true});
-  video.addEventListener('play', () => video.pause());
-  window.addEventListener('scroll', updateTarget, {passive:true});
+  window.addEventListener('scroll', updateTarget, { passive:true });
   window.addEventListener('resize', updateTarget);
   updateTarget();
   raf = requestAnimationFrame(render);
-  window.addEventListener('pagehide', () => cancelAnimationFrame(raf), {once:true});
+  window.addEventListener('pagehide', () => cancelAnimationFrame(raf), { once:true });
 })();

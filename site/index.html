@@ -129,15 +129,31 @@
     </div>
   </section>
 
-  <section class="scroll-routine" data-scroll-routine aria-label="Scroll-controlled Green Boost preparation">
-    <div class="scroll-routine-sticky">
-      <div class="scroll-routine-media">
-        <video data-scroll-routine-video muted playsinline preload="auto" poster="./assets/routine-scroll-poster.jpg" aria-label="Green Boost being scooped into water and stirred">
-          <source src="./assets/routine-scroll.mp4" type="video/mp4">
-        </video>
+  <section class="scroll-routine" data-scroll-routine aria-label="Three-step Green Boost preparation">
+    <div class="scroll-routine-inner">
+      <div class="scroll-routine-copy" aria-label="Preparation steps">
+        <article class="scroll-routine-copy-step is-active" data-routine-copy-step="scoop">
+          <span class="scroll-routine-index">01 / 03</span>
+          <h3>Scoop</h3>
+          <p>Add one scoop of Green Boost to cold water or your favorite milk.</p>
+        </article>
+        <article class="scroll-routine-copy-step" data-routine-copy-step="stir">
+          <span class="scroll-routine-index">02 / 03</span>
+          <h3>Stir</h3>
+          <p>Give it a good stir for a few seconds until the powder is mixed through.</p>
+        </article>
+        <article class="scroll-routine-copy-step" data-routine-copy-step="enjoy">
+          <span class="scroll-routine-index">03 / 03</span>
+          <h3>Enjoy</h3>
+          <p>That is it. No chopping, no blender, and almost nothing to clean.</p>
+        </article>
       </div>
-      <div class="scroll-routine-word" data-routine-word aria-live="off"></div>
-      <div class="scroll-routine-reduced" aria-hidden="true"><span>01 Scoop</span><span>02 Stir</span><span>03 Enjoy</span></div>
+      <div class="scroll-routine-media-column">
+        <div class="scroll-routine-media" data-scroll-routine-media>
+          <img class="scroll-routine-poster" src="./assets/routine-scroll-poster.jpg" alt="" aria-hidden="true">
+          <canvas data-scroll-routine-canvas width="1152" height="648" role="img" aria-label="Green Boost being scooped into water and stirred"></canvas>
+        </div>
+      </div>
     </div>
   </section>
 
