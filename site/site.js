@@ -167,196 +167,200 @@
   });
 })();
 
-// v3.18 — Directional step playback.
-// Scroll chooses a semantic destination (start / Scoop / Stir / Enjoy), but it no longer
-// scrubs individual frames. The film plays toward that destination at its own smooth rate.
-// Fast scrolling therefore queues later steps instead of skipping/chopping through frames,
-// and scrolling back simply plays the same footage in reverse.
+// v3.22 — Native-video directional step playback.
+// Scroll chooses Scoop / Stir / Enjoy; the footage itself plays at film speed.
+// A forward and reversed copy let both directions remain smooth without frame-by-frame seeking.
 (() => {
   const section = document.querySelector('[data-scroll-routine]');
-  const canvas = document.querySelector('[data-scroll-routine-canvas]');
   const media = document.querySelector('[data-scroll-routine-media]');
+  const forward = document.querySelector('[data-routine-video-forward]');
+  const reverse = document.querySelector('[data-routine-video-reverse]');
   const steps = [...document.querySelectorAll('[data-routine-copy-step]')];
-  if (!section || !canvas || !media || steps.length !== 3) return;
+  if (!section || !media || !forward || !reverse || steps.length !== 3) return;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduced.matches) return;
 
-  const ctx = canvas.getContext('2d', { alpha:false, desynchronized:true });
-  if (!ctx) return;
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
+  const DURATION = 5.422;
+  // Resting moments selected from the source film: beginning, Scoop complete, Stir complete, Enjoy.
+  const anchors = [0, 2.59, 4.63, 5.36];
+  const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+  const clamp01 = v => clamp(v, 0, 1);
 
-  const FRAME_COUNT = 130;
-  const SOURCE_FPS = 24;
-  const PLAYBACK_RATE = 1.08;
-  const PLAYBACK_FPS = SOURCE_FPS * PLAYBACK_RATE;
-  const frames = new Array(FRAME_COUNT);
-  const loaded = new Uint8Array(FRAME_COUNT);
-
-  // Four resting positions create three real film actions:
-  // start -> Scoop -> Stir -> Enjoy.
-  const anchors = [0, 62, 111, FRAME_COUNT - 1];
   let desiredState = 0;
-  let shownFrame = 0;
-  let lastFrame = performance.now();
+  let canonicalTime = 0;
+  let direction = 0;
+  let activeVideo = forward;
+  let readyForward = false;
+  let readyReverse = false;
   let raf = 0;
-  let lastDrawn = -1;
+  let fallbackRaf = 0;
 
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const clamp01 = value => clamp(value, 0, 1);
-  const smoothstep = value => {
-    const x = clamp01(value);
-    return x * x * (3 - 2 * x);
-  };
-  const frameUrl = index => `./assets/routine-frames/frame_${String(index + 1).padStart(3, '0')}.webp`;
-
-  const draw = frameFloat => {
-    const f = clamp(frameFloat, 0, FRAME_COUNT - 1);
-    const base = Math.floor(f);
-    const next = Math.min(FRAME_COUNT - 1, base + 1);
-    const mix = smoothstep(f - base);
-    const a = loaded[base] ? frames[base] : null;
-    const b = loaded[next] ? frames[next] : null;
-
-    if (!a && !b) {
-      for (let offset = 1; offset < 12; offset += 1) {
-        const left = base - offset;
-        const right = base + offset;
-        if (left >= 0 && loaded[left]) return draw(left);
-        if (right < FRAME_COUNT && loaded[right]) return draw(right);
-      }
-      return;
-    }
-
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    if (a) ctx.drawImage(a, 0, 0, canvas.width, canvas.height);
-    else if (b) ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
-
-    if (a && b && next !== base && mix > .02) {
-      ctx.globalAlpha = mix;
-      ctx.drawImage(b, 0, 0, canvas.width, canvas.height);
-      ctx.globalAlpha = 1;
-    }
-  };
-
-  const loadFrame = (index, priority = false) => {
-    if (index < 0 || index >= FRAME_COUNT || frames[index]) return;
-    const img = new Image();
-    img.decoding = 'async';
-    try { img.fetchPriority = priority ? 'high' : 'low'; } catch (_) {}
-    img.onload = () => {
-      loaded[index] = 1;
-      if (index === 0) {
-        draw(0);
-        media.classList.add('is-frames-ready');
-      }
-    };
-    img.src = frameUrl(index);
-    frames[index] = img;
-  };
-
-  // Prime the rest frames and their immediate neighborhoods first.
-  anchors.forEach(anchor => {
-    for (let offset = -3; offset <= 3; offset += 1) loadFrame(anchor + offset, true);
+  [forward, reverse].forEach(video => {
+    video.muted = true;
+    video.playsInline = true;
+    video.controls = false;
+    video.loop = false;
+    video.playbackRate = 1.08;
   });
 
-  // Warm the small frame sequence before this lower-page section is reached.
-  let preloadCursor = 0;
-  const warmFrames = deadline => {
-    let budget = 10;
-    while (preloadCursor < FRAME_COUNT && budget > 0 && (!deadline || deadline.timeRemaining() > 2)) {
-      loadFrame(preloadCursor, false);
-      preloadCursor += 1;
-      budget -= 1;
-    }
-    if (preloadCursor < FRAME_COUNT) {
-      if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:120 });
-      else setTimeout(() => warmFrames(null), 32);
+  const showVideo = video => {
+    activeVideo = video;
+    forward.classList.toggle('is-active', video === forward);
+    reverse.classList.toggle('is-active', video === reverse);
+    if (readyForward) media.classList.add('is-video-ready');
+  };
+
+  const safeSeek = (video, time) => {
+    const t = clamp(time, 0, DURATION);
+    if (Math.abs((video.currentTime || 0) - t) > .035) {
+      try { video.currentTime = t; } catch (_) {}
     }
   };
-  if ('requestIdleCallback' in window) requestIdleCallback(warmFrames, { timeout:80 });
-  else setTimeout(() => warmFrames(null), 24);
 
-  // Scroll only selects which step the film should have completed. It never selects a frame.
-  // The first threshold sits just above Scoop, giving us a true start state for reverse playback.
+  const stopFallback = () => {
+    if (fallbackRaf) cancelAnimationFrame(fallbackRaf);
+    fallbackRaf = 0;
+  };
+
+  // Rare browser fallback: if muted play() is denied, advance at a fixed film rate.
+  // Scroll still selects a stage rather than directly scrubbing the footage.
+  const fallbackToward = target => {
+    stopFallback();
+    let last = performance.now();
+    const tick = now => {
+      const dt = Math.min(.05, Math.max(.001, (now - last) / 1000));
+      last = now;
+      const error = target - canonicalTime;
+      if (Math.abs(error) < .018) {
+        canonicalTime = target;
+        safeSeek(forward, canonicalTime);
+        showVideo(forward);
+        fallbackRaf = 0;
+        return;
+      }
+      canonicalTime += Math.sign(error) * Math.min(Math.abs(error), dt * 1.08);
+      safeSeek(forward, canonicalTime);
+      showVideo(forward);
+      fallbackRaf = requestAnimationFrame(tick);
+    };
+    fallbackRaf = requestAnimationFrame(tick);
+  };
+
+  const playForward = target => {
+    stopFallback();
+    reverse.pause();
+    direction = 1;
+    safeSeek(forward, canonicalTime);
+    showVideo(forward);
+    const promise = forward.play();
+    if (promise && typeof promise.catch === 'function') promise.catch(() => fallbackToward(target));
+  };
+
+  const playReverse = target => {
+    stopFallback();
+    forward.pause();
+    direction = -1;
+    const reverseTime = DURATION - canonicalTime;
+    safeSeek(reverse, reverseTime);
+    showVideo(reverse);
+    const promise = reverse.play();
+    if (promise && typeof promise.catch === 'function') promise.catch(() => fallbackToward(target));
+  };
+
+  const settle = target => {
+    canonicalTime = target;
+    forward.pause();
+    reverse.pause();
+    direction = 0;
+    // Keep whichever film was already visible. Both copies represent the same canonical frame.
+    if (activeVideo === forward) safeSeek(forward, canonicalTime);
+    else safeSeek(reverse, DURATION - canonicalTime);
+  };
+
+  const updatePlayback = () => {
+    const target = anchors[desiredState];
+    const error = target - canonicalTime;
+    if (Math.abs(error) <= .025) {
+      settle(target);
+      return;
+    }
+    if (error > 0 && direction !== 1) playForward(target);
+    else if (error < 0 && direction !== -1) playReverse(target);
+  };
+
   const getThresholds = () => {
-    const viewportCenter = window.innerHeight * .5;
+    const mediaRect = media.getBoundingClientRect();
+    const focusY = mediaRect.top + mediaRect.height * .5;
     const centers = steps.map(step => {
-      const rect = step.getBoundingClientRect();
-      return window.scrollY + rect.top + rect.height * .5 - viewportCenter;
+      const r = step.getBoundingClientRect();
+      return r.top + r.height * .5;
     });
-    const d01 = Math.max(1, centers[1] - centers[0]);
-    return [
-      centers[0] - d01 * .52,
-      (centers[0] + centers[1]) * .5,
-      (centers[1] + centers[2]) * .5
-    ];
+    return { focusY, centers };
   };
 
   const updateDestination = () => {
-    const y = window.scrollY;
-    const t = getThresholds();
-    let nextState = 0;
-    if (y >= t[2]) nextState = 3;
-    else if (y >= t[1]) nextState = 2;
-    else if (y >= t[0]) nextState = 1;
-
-    desiredState = nextState;
-
-    // The copy remains native scroll content. Focus is continuous rather than snapping:
-    // whichever step is nearest the sticky film gets the strongest treatment.
-    const mediaRect = media.getBoundingClientRect();
-    const focusY = mediaRect.top + mediaRect.height * .5;
-    let nearestIndex = 0;
+    const { focusY, centers } = getThresholds();
+    let nearest = 0;
     let nearestDistance = Infinity;
-    steps.forEach((step, index) => {
-      const rect = step.getBoundingClientRect();
-      const center = rect.top + rect.height * .5;
+    centers.forEach((center, index) => {
       const distance = Math.abs(center - focusY);
-      if (distance < nearestDistance) { nearestDistance = distance; nearestIndex = index; }
-      const focus = clamp01(1 - distance / Math.max(window.innerHeight * .43, 240));
-      step.style.opacity = String(.30 + focus * .70);
-      step.style.transform = `translateY(${(1 - focus) * 5}px)`;
+      if (distance < nearestDistance) { nearestDistance = distance; nearest = index; }
+      const focus = clamp01(1 - distance / Math.max(window.innerHeight * .38, 230));
+      steps[index].style.opacity = String(.34 + focus * .66);
+      steps[index].style.transform = `translateY(${(1 - focus) * 4}px)`;
     });
-    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearestIndex));
+    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearest));
 
-    // Prioritize the path between the current frame and the new destination. A fast fling can
-    // jump from Scoop to Enjoy, but playback will still traverse every frame in between.
-    const target = anchors[desiredState];
-    const lo = Math.max(0, Math.floor(Math.min(shownFrame, target)) - 5);
-    const hi = Math.min(FRAME_COUNT - 1, Math.ceil(Math.max(shownFrame, target)) + 5);
-    for (let i = lo; i <= hi; i += 1) loadFrame(i, true);
+    const nextState = nearest + 1;
+    if (nextState !== desiredState) {
+      desiredState = nextState;
+      updatePlayback();
+    }
   };
 
-  const render = now => {
-    const dt = clamp((now - lastFrame) / 1000, .001, .05);
-    lastFrame = now;
-    const target = anchors[desiredState];
-    const error = target - shownFrame;
-
-    if (Math.abs(error) > .001) {
-      // The source motion now plays like film, not like a scrollbar. Scroll speed cannot make
-      // it stutter or skip; it only changes the destination. Reverse scroll reverses playback.
-      const step = PLAYBACK_FPS * dt;
-      shownFrame += Math.sign(error) * Math.min(Math.abs(error), step);
-    } else {
-      shownFrame = target;
+  const monitor = () => {
+    if (direction === 1) {
+      canonicalTime = clamp(forward.currentTime || canonicalTime, 0, DURATION);
+      const target = anchors[desiredState];
+      if (canonicalTime >= target - .025) settle(target);
+      else if (target < canonicalTime - .025) updatePlayback();
+    } else if (direction === -1) {
+      canonicalTime = clamp(DURATION - (reverse.currentTime || 0), 0, DURATION);
+      const target = anchors[desiredState];
+      if (canonicalTime <= target + .025) settle(target);
+      else if (target > canonicalTime + .025) updatePlayback();
     }
-
-    const drawKey = Math.round(shownFrame * 1000);
-    if (drawKey !== lastDrawn) {
-      draw(shownFrame);
-      lastDrawn = drawKey;
-    }
-    raf = requestAnimationFrame(render);
+    raf = requestAnimationFrame(monitor);
   };
+
+  const markForwardReady = () => {
+    readyForward = true;
+    safeSeek(forward, canonicalTime);
+    media.classList.add('is-video-ready');
+  };
+  const markReverseReady = () => {
+    readyReverse = true;
+    safeSeek(reverse, DURATION - canonicalTime);
+  };
+  forward.addEventListener('loadeddata', markForwardReady, { once:true });
+  reverse.addEventListener('loadeddata', markReverseReady, { once:true });
+  if (forward.readyState >= 2) markForwardReady();
+  if (reverse.readyState >= 2) markReverseReady();
 
   window.addEventListener('scroll', updateDestination, { passive:true });
   window.addEventListener('resize', updateDestination);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { forward.pause(); reverse.pause(); direction = 0; }
+    else updatePlayback();
+  });
+
   updateDestination();
-  raf = requestAnimationFrame(render);
-  window.addEventListener('pagehide', () => cancelAnimationFrame(raf), { once:true });
+  raf = requestAnimationFrame(monitor);
+  window.addEventListener('pagehide', () => {
+    cancelAnimationFrame(raf);
+    stopFallback();
+    forward.pause();
+    reverse.pause();
+  }, { once:true });
 })();

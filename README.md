@@ -65,7 +65,7 @@ The current sitemap uses the intended production base `https://avokind.com/`. If
 Added footer-only About, Blog, Contact and FAQ routes based on the live AvoKind information architecture; rebuilt the footer as a much taller dark-green destination with a wave pattern; and added the initial searchable, structured-data-ready AvoKind Journal article architecture.
 
 
-## Journal / blog system (v3.21)
+## Journal / blog system (v3.22)
 
 The Journal ships with 10 static, crawlable articles in `site/blog/`. Each article has:
 - a unique title and meta description
@@ -83,7 +83,13 @@ The Journal ships with 10 static, crawlable articles in `site/blog/`. Each artic
 Create another static HTML file in `site/blog/` by copying an existing article and update the canonical, metadata, visible date, schema, sources, and APA citation. Then add a static card to `site/blog.html` and add the canonical URL to `sitemap.xml`, `feed.xml`, and `llms.txt`. Keep claims matched to the exact form/dose studied and do not turn ingredient evidence into a Green Boost clinical claim.
 
 
-## v3.21 interaction polish
+## v3.22 interaction polish
 - The homepage preparation film now uses a short sticky hold while Scoop / Stir / Enjoy remain native scrolling content.
 - Playback is still semantic and directional: scrolling selects a stage; the film plays smoothly toward it rather than scrubbing raw frames.
 - The footer is shorter on wide displays and its dark-green top boundary is now a true filled wave rather than a rectangular block with decorative lines.
+
+
+## v3.22 repair
+- Replaced the fragile canvas frame routine with native forward/reverse MP4 playback.
+- Prevented horizontal page drift and hardened the routine layout at laptop widths.
+- Moved the wave to the actual top edge of the Home closing section and merged the CTA/footer into one continuous dark-green field.

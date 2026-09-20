@@ -8,7 +8,7 @@
   <title>AvoKind — Real Whole Foods. Nothing Else.</title>
   <link rel="stylesheet" href="./brand.css">
 </head>
-<body>
+<body class="home-page">
 <a class="skip-link" href="#main">Skip to content</a>
 <div class="announcement-bar">REAL WHOLE FOODS · NOTHING ELSE</div>
 <header class="avk-header">
@@ -151,7 +151,12 @@
       <div class="scroll-routine-media-column">
         <div class="scroll-routine-media" data-scroll-routine-media>
           <img class="scroll-routine-poster" src="./assets/routine-scroll-poster.jpg" alt="" aria-hidden="true">
-          <canvas data-scroll-routine-canvas width="1152" height="648" role="img" aria-label="Green Boost being scooped into water and stirred"></canvas>
+          <video class="scroll-routine-video is-active" data-routine-video-forward muted playsinline preload="auto" aria-label="Green Boost being scooped into water and stirred">
+            <source src="./assets/routine-forward.mp4" type="video/mp4">
+          </video>
+          <video class="scroll-routine-video" data-routine-video-reverse muted playsinline preload="auto" aria-hidden="true">
+            <source src="./assets/routine-reverse.mp4" type="video/mp4">
+          </video>
         </div>
       </div>
     </div>
