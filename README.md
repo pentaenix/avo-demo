@@ -95,3 +95,7 @@ Create another static HTML file in `site/blog/` by copying an existing article a
 - Replaced the fragile canvas frame routine with native forward/reverse MP4 playback.
 - Prevented horizontal page drift and hardened the routine layout at laptop widths.
 - Moved the wave to the actual top edge of the Home closing section and merged the CTA/footer into one continuous dark-green field.
+
+
+## v3.24 routine playback fix
+The three-step Home routine now uses short animated WebP sequences instead of scripted MP4 playback. This removes browser autoplay/play() permission as a failure mode while keeping forward and reverse semantic steps.

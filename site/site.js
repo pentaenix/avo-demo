@@ -167,118 +167,118 @@
   });
 })();
 
-// v3.23 — Segmented routine playback.
-// Scroll chooses a semantic state. Each action plays as its own short film,
-// so wheel speed never scrubs individual frames and reverse movement uses a real reversed clip.
+// v3.24 — Scroll chooses the step; the browser plays a short animated image.
+// This deliberately avoids video.play(), autoplay policy, media seeking, and frame scrubbing.
+// A fresh <img> node is inserted for every step so each animation reliably restarts.
 (() => {
   const section = document.querySelector('[data-scroll-routine]');
   const media = document.querySelector('[data-scroll-routine-media]');
+  const stage = document.querySelector('[data-routine-animation-stage]');
   const steps = [...document.querySelectorAll('[data-routine-copy-step]')];
-  const clips = new Map([...document.querySelectorAll('[data-routine-clip]')].map(v => [v.dataset.routineClip, v]));
-  if (!section || !media || steps.length !== 3 || clips.size < 6) return;
+  if (!section || !media || !stage || steps.length !== 3) return;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduced.matches) return;
 
-  const segmentNames = ['scoop', 'stir', 'enjoy'];
+  const segments = [
+    { name: 'scoop', ms: 2120 },
+    { name: 'stir',  ms: 1660 },
+    { name: 'enjoy', ms: 620 }
+  ];
+  const base = './assets/routine-steps-webp/';
+  const urls = [];
+  for (const segment of segments) {
+    urls.push(`${base}${segment.name}-forward.webp`, `${base}${segment.name}-reverse.webp`);
+  }
+
+  // Start downloading before the section reaches the viewport. These are small, cached images.
+  const preloaders = urls.map(src => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    return img;
+  });
+
   let state = 0;          // 0=start, 1=scoop complete, 2=stir complete, 3=enjoy complete
   let desiredState = 0;
   let running = false;
-  let activeClip = null;
+  let timer = 0;
   let queuedRaf = 0;
+  let runId = 0;
 
-  clips.forEach(video => {
-    video.muted = true;
-    video.playsInline = true;
-    video.controls = false;
-    video.loop = false;
-    video.playbackRate = 1.16;
-  });
-
-  const pauseAll = except => {
-    clips.forEach(video => {
-      if (video !== except) video.pause();
-      video.classList.toggle('is-active', video === except);
-    });
-    activeClip = except || null;
-    media.classList.toggle('is-video-ready', Boolean(except && except.readyState >= 2));
-  };
-
-  const finishWithoutPlayback = (nextState, video) => {
-    // Safe fallback for a browser that declines muted scripted playback.
-    // We still advance the semantic state and leave the closest available frame visible.
-    try {
-      if (Number.isFinite(video.duration) && video.duration > 0) video.currentTime = Math.max(0, video.duration - 0.02);
-    } catch (_) {}
-    state = nextState;
-    running = false;
-    runTowardDesired();
-  };
-
-  const playSegment = (stepNumber, direction) => {
-    const name = segmentNames[stepNumber - 1];
-    const key = `${name}-${direction > 0 ? 'forward' : 'reverse'}`;
-    const video = clips.get(key);
-    if (!video) return;
+  const showSegment = (stepNumber, direction) => {
+    const segment = segments[stepNumber - 1];
+    if (!segment) return;
 
     running = true;
-    pauseAll(video);
-    try { video.currentTime = 0; } catch (_) {}
-
     const nextState = direction > 0 ? stepNumber : stepNumber - 1;
-    let completed = false;
-    const complete = () => {
-      if (completed) return;
-      completed = true;
-      video.removeEventListener('ended', complete);
+    const suffix = direction > 0 ? 'forward' : 'reverse';
+    const src = `${base}${segment.name}-${suffix}.webp`;
+    const thisRun = ++runId;
+
+    const img = new Image();
+    img.className = 'scroll-routine-animation';
+    img.alt = '';
+    img.decoding = 'async';
+    img.draggable = false;
+    let begun = false;
+
+    const begin = () => {
+      if (begun || thisRun !== runId) return;
+      begun = true;
+      stage.replaceChildren(img);
+      requestAnimationFrame(() => media.classList.add('is-animation-ready'));
+      clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        if (thisRun !== runId) return;
+        state = nextState;
+        running = false;
+        runTowardDesired();
+      }, segment.ms);
+    };
+
+    img.addEventListener('load', begin, { once: true });
+    img.addEventListener('error', () => {
+      // The static poster remains visible if an animation asset ever fails.
       state = nextState;
       running = false;
       runTowardDesired();
-    };
-    video.addEventListener('ended', complete, { once: true });
+    }, { once: true });
+    img.src = src;
 
-    const start = () => {
-      media.classList.add('is-video-ready');
-      const p = video.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(() => finishWithoutPlayback(nextState, video));
-      }
-    };
-
-    if (video.readyState >= 2) start();
-    else video.addEventListener('loadeddata', start, { once: true });
+    // Cached images can already be complete before the load listener gets a turn.
+    if (img.complete && img.naturalWidth > 0) begin();
   };
 
   function runTowardDesired() {
     if (running || desiredState === state) return;
-    if (desiredState > state) playSegment(state + 1, 1);
-    else playSegment(state, -1);
+    if (desiredState > state) showSegment(state + 1, 1);
+    else showSegment(state, -1);
   }
 
   const updateDestination = () => {
     queuedRaf = 0;
     const sectionRect = section.getBoundingClientRect();
 
-    // Before the sequence enters, stay at its first frame. After it leaves below,
-    // settle at the completed state without forcing an off-screen playback marathon.
     if (sectionRect.top > window.innerHeight * .92) {
       desiredState = 0;
-      runTowardDesired();
       steps.forEach((step, i) => {
         step.classList.toggle('is-active', i === 0);
         step.style.opacity = i === 0 ? '1' : '.34';
         step.style.transform = 'none';
       });
+      runTowardDesired();
       return;
     }
+
     if (sectionRect.bottom < window.innerHeight * .08) {
       desiredState = 3;
-      runTowardDesired();
       steps.forEach((step, i) => {
         step.classList.toggle('is-active', i === 2);
         step.style.opacity = i === 2 ? '1' : '.34';
         step.style.transform = 'none';
       });
+      runTowardDesired();
       return;
     }
 
@@ -308,14 +308,10 @@
     if (!queuedRaf) queuedRaf = requestAnimationFrame(updateDestination);
   };
 
-  // Warm the six tiny clips without playing them. This makes the first scroll transition immediate.
-  clips.forEach(video => { try { video.load(); } catch (_) {} });
-
   window.addEventListener('scroll', scheduleUpdate, { passive: true });
   window.addEventListener('resize', scheduleUpdate);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) clips.forEach(v => v.pause());
-    else { running = false; runTowardDesired(); }
+    if (!document.hidden) scheduleUpdate();
   });
 
   updateDestination();
