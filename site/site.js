@@ -167,200 +167,156 @@
   });
 })();
 
-// v3.22 — Native-video directional step playback.
-// Scroll chooses Scoop / Stir / Enjoy; the footage itself plays at film speed.
-// A forward and reversed copy let both directions remain smooth without frame-by-frame seeking.
+// v3.23 — Segmented routine playback.
+// Scroll chooses a semantic state. Each action plays as its own short film,
+// so wheel speed never scrubs individual frames and reverse movement uses a real reversed clip.
 (() => {
   const section = document.querySelector('[data-scroll-routine]');
   const media = document.querySelector('[data-scroll-routine-media]');
-  const forward = document.querySelector('[data-routine-video-forward]');
-  const reverse = document.querySelector('[data-routine-video-reverse]');
   const steps = [...document.querySelectorAll('[data-routine-copy-step]')];
-  if (!section || !media || !forward || !reverse || steps.length !== 3) return;
+  const clips = new Map([...document.querySelectorAll('[data-routine-clip]')].map(v => [v.dataset.routineClip, v]));
+  if (!section || !media || steps.length !== 3 || clips.size < 6) return;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduced.matches) return;
 
-  const DURATION = 5.422;
-  // Resting moments selected from the source film: beginning, Scoop complete, Stir complete, Enjoy.
-  const anchors = [0, 2.59, 4.63, 5.36];
-  const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
-  const clamp01 = v => clamp(v, 0, 1);
-
+  const segmentNames = ['scoop', 'stir', 'enjoy'];
+  let state = 0;          // 0=start, 1=scoop complete, 2=stir complete, 3=enjoy complete
   let desiredState = 0;
-  let canonicalTime = 0;
-  let direction = 0;
-  let activeVideo = forward;
-  let readyForward = false;
-  let readyReverse = false;
-  let raf = 0;
-  let fallbackRaf = 0;
+  let running = false;
+  let activeClip = null;
+  let queuedRaf = 0;
 
-  [forward, reverse].forEach(video => {
+  clips.forEach(video => {
     video.muted = true;
     video.playsInline = true;
     video.controls = false;
     video.loop = false;
-    video.playbackRate = 1.08;
+    video.playbackRate = 1.16;
   });
 
-  const showVideo = video => {
-    activeVideo = video;
-    forward.classList.toggle('is-active', video === forward);
-    reverse.classList.toggle('is-active', video === reverse);
-    if (readyForward) media.classList.add('is-video-ready');
-  };
-
-  const safeSeek = (video, time) => {
-    const t = clamp(time, 0, DURATION);
-    if (Math.abs((video.currentTime || 0) - t) > .035) {
-      try { video.currentTime = t; } catch (_) {}
-    }
-  };
-
-  const stopFallback = () => {
-    if (fallbackRaf) cancelAnimationFrame(fallbackRaf);
-    fallbackRaf = 0;
-  };
-
-  // Rare browser fallback: if muted play() is denied, advance at a fixed film rate.
-  // Scroll still selects a stage rather than directly scrubbing the footage.
-  const fallbackToward = target => {
-    stopFallback();
-    let last = performance.now();
-    const tick = now => {
-      const dt = Math.min(.05, Math.max(.001, (now - last) / 1000));
-      last = now;
-      const error = target - canonicalTime;
-      if (Math.abs(error) < .018) {
-        canonicalTime = target;
-        safeSeek(forward, canonicalTime);
-        showVideo(forward);
-        fallbackRaf = 0;
-        return;
-      }
-      canonicalTime += Math.sign(error) * Math.min(Math.abs(error), dt * 1.08);
-      safeSeek(forward, canonicalTime);
-      showVideo(forward);
-      fallbackRaf = requestAnimationFrame(tick);
-    };
-    fallbackRaf = requestAnimationFrame(tick);
-  };
-
-  const playForward = target => {
-    stopFallback();
-    reverse.pause();
-    direction = 1;
-    safeSeek(forward, canonicalTime);
-    showVideo(forward);
-    const promise = forward.play();
-    if (promise && typeof promise.catch === 'function') promise.catch(() => fallbackToward(target));
-  };
-
-  const playReverse = target => {
-    stopFallback();
-    forward.pause();
-    direction = -1;
-    const reverseTime = DURATION - canonicalTime;
-    safeSeek(reverse, reverseTime);
-    showVideo(reverse);
-    const promise = reverse.play();
-    if (promise && typeof promise.catch === 'function') promise.catch(() => fallbackToward(target));
-  };
-
-  const settle = target => {
-    canonicalTime = target;
-    forward.pause();
-    reverse.pause();
-    direction = 0;
-    // Keep whichever film was already visible. Both copies represent the same canonical frame.
-    if (activeVideo === forward) safeSeek(forward, canonicalTime);
-    else safeSeek(reverse, DURATION - canonicalTime);
-  };
-
-  const updatePlayback = () => {
-    const target = anchors[desiredState];
-    const error = target - canonicalTime;
-    if (Math.abs(error) <= .025) {
-      settle(target);
-      return;
-    }
-    if (error > 0 && direction !== 1) playForward(target);
-    else if (error < 0 && direction !== -1) playReverse(target);
-  };
-
-  const getThresholds = () => {
-    const mediaRect = media.getBoundingClientRect();
-    const focusY = mediaRect.top + mediaRect.height * .5;
-    const centers = steps.map(step => {
-      const r = step.getBoundingClientRect();
-      return r.top + r.height * .5;
+  const pauseAll = except => {
+    clips.forEach(video => {
+      if (video !== except) video.pause();
+      video.classList.toggle('is-active', video === except);
     });
-    return { focusY, centers };
+    activeClip = except || null;
+    media.classList.toggle('is-video-ready', Boolean(except && except.readyState >= 2));
   };
+
+  const finishWithoutPlayback = (nextState, video) => {
+    // Safe fallback for a browser that declines muted scripted playback.
+    // We still advance the semantic state and leave the closest available frame visible.
+    try {
+      if (Number.isFinite(video.duration) && video.duration > 0) video.currentTime = Math.max(0, video.duration - 0.02);
+    } catch (_) {}
+    state = nextState;
+    running = false;
+    runTowardDesired();
+  };
+
+  const playSegment = (stepNumber, direction) => {
+    const name = segmentNames[stepNumber - 1];
+    const key = `${name}-${direction > 0 ? 'forward' : 'reverse'}`;
+    const video = clips.get(key);
+    if (!video) return;
+
+    running = true;
+    pauseAll(video);
+    try { video.currentTime = 0; } catch (_) {}
+
+    const nextState = direction > 0 ? stepNumber : stepNumber - 1;
+    let completed = false;
+    const complete = () => {
+      if (completed) return;
+      completed = true;
+      video.removeEventListener('ended', complete);
+      state = nextState;
+      running = false;
+      runTowardDesired();
+    };
+    video.addEventListener('ended', complete, { once: true });
+
+    const start = () => {
+      media.classList.add('is-video-ready');
+      const p = video.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(() => finishWithoutPlayback(nextState, video));
+      }
+    };
+
+    if (video.readyState >= 2) start();
+    else video.addEventListener('loadeddata', start, { once: true });
+  };
+
+  function runTowardDesired() {
+    if (running || desiredState === state) return;
+    if (desiredState > state) playSegment(state + 1, 1);
+    else playSegment(state, -1);
+  }
 
   const updateDestination = () => {
-    const { focusY, centers } = getThresholds();
+    queuedRaf = 0;
+    const sectionRect = section.getBoundingClientRect();
+
+    // Before the sequence enters, stay at its first frame. After it leaves below,
+    // settle at the completed state without forcing an off-screen playback marathon.
+    if (sectionRect.top > window.innerHeight * .92) {
+      desiredState = 0;
+      runTowardDesired();
+      steps.forEach((step, i) => {
+        step.classList.toggle('is-active', i === 0);
+        step.style.opacity = i === 0 ? '1' : '.34';
+        step.style.transform = 'none';
+      });
+      return;
+    }
+    if (sectionRect.bottom < window.innerHeight * .08) {
+      desiredState = 3;
+      runTowardDesired();
+      steps.forEach((step, i) => {
+        step.classList.toggle('is-active', i === 2);
+        step.style.opacity = i === 2 ? '1' : '.34';
+        step.style.transform = 'none';
+      });
+      return;
+    }
+
+    const focusY = window.innerHeight * .5;
     let nearest = 0;
     let nearestDistance = Infinity;
-    centers.forEach((center, index) => {
+
+    steps.forEach((step, index) => {
+      const r = step.getBoundingClientRect();
+      const center = r.top + r.height * .5;
       const distance = Math.abs(center - focusY);
-      if (distance < nearestDistance) { nearestDistance = distance; nearest = index; }
-      const focus = clamp01(1 - distance / Math.max(window.innerHeight * .38, 230));
-      steps[index].style.opacity = String(.34 + focus * .66);
-      steps[index].style.transform = `translateY(${(1 - focus) * 4}px)`;
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = index;
+      }
+      const focus = Math.max(0, Math.min(1, 1 - distance / Math.max(window.innerHeight * .34, 220)));
+      step.style.opacity = String(.34 + focus * .66);
+      step.style.transform = `translateY(${(1 - focus) * 3}px)`;
     });
+
     steps.forEach((step, index) => step.classList.toggle('is-active', index === nearest));
-
-    const nextState = nearest + 1;
-    if (nextState !== desiredState) {
-      desiredState = nextState;
-      updatePlayback();
-    }
+    desiredState = nearest + 1;
+    runTowardDesired();
   };
 
-  const monitor = () => {
-    if (direction === 1) {
-      canonicalTime = clamp(forward.currentTime || canonicalTime, 0, DURATION);
-      const target = anchors[desiredState];
-      if (canonicalTime >= target - .025) settle(target);
-      else if (target < canonicalTime - .025) updatePlayback();
-    } else if (direction === -1) {
-      canonicalTime = clamp(DURATION - (reverse.currentTime || 0), 0, DURATION);
-      const target = anchors[desiredState];
-      if (canonicalTime <= target + .025) settle(target);
-      else if (target > canonicalTime + .025) updatePlayback();
-    }
-    raf = requestAnimationFrame(monitor);
+  const scheduleUpdate = () => {
+    if (!queuedRaf) queuedRaf = requestAnimationFrame(updateDestination);
   };
 
-  const markForwardReady = () => {
-    readyForward = true;
-    safeSeek(forward, canonicalTime);
-    media.classList.add('is-video-ready');
-  };
-  const markReverseReady = () => {
-    readyReverse = true;
-    safeSeek(reverse, DURATION - canonicalTime);
-  };
-  forward.addEventListener('loadeddata', markForwardReady, { once:true });
-  reverse.addEventListener('loadeddata', markReverseReady, { once:true });
-  if (forward.readyState >= 2) markForwardReady();
-  if (reverse.readyState >= 2) markReverseReady();
+  // Warm the six tiny clips without playing them. This makes the first scroll transition immediate.
+  clips.forEach(video => { try { video.load(); } catch (_) {} });
 
-  window.addEventListener('scroll', updateDestination, { passive:true });
-  window.addEventListener('resize', updateDestination);
+  window.addEventListener('scroll', scheduleUpdate, { passive: true });
+  window.addEventListener('resize', scheduleUpdate);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { forward.pause(); reverse.pause(); direction = 0; }
-    else updatePlayback();
+    if (document.hidden) clips.forEach(v => v.pause());
+    else { running = false; runTowardDesired(); }
   });
 
   updateDestination();
-  raf = requestAnimationFrame(monitor);
-  window.addEventListener('pagehide', () => {
-    cancelAnimationFrame(raf);
-    stopFallback();
-    forward.pause();
-    reverse.pause();
-  }, { once:true });
 })();
