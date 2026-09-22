@@ -167,152 +167,56 @@
   });
 })();
 
-// v3.24 — Scroll chooses the step; the browser plays a short animated image.
-// This deliberately avoids video.play(), autoplay policy, media seeking, and frame scrubbing.
-// A fresh <img> node is inserted for every step so each animation reliably restarts.
+// v3.26 — Simple in-view playback.
+// The routine is a normal video, not a scroll-controlled animation. It plays once
+// when the section is meaningfully visible and then holds on its final frame.
 (() => {
-  const section = document.querySelector('[data-scroll-routine]');
-  const media = document.querySelector('[data-scroll-routine-media]');
-  const stage = document.querySelector('[data-routine-animation-stage]');
-  const steps = [...document.querySelectorAll('[data-routine-copy-step]')];
-  if (!section || !media || !stage || steps.length !== 3) return;
+  const section = document.querySelector('[data-routine-playback]');
+  const video = section?.querySelector('[data-routine-video]');
+  if (!section || !video) return;
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reduced.matches) return;
 
-  const segments = [
-    { name: 'scoop', ms: 2120 },
-    { name: 'stir',  ms: 1660 },
-    { name: 'enjoy', ms: 620 }
-  ];
-  const base = './assets/routine-steps-webp/';
-  const urls = [];
-  for (const segment of segments) {
-    urls.push(`${base}${segment.name}-forward.webp`, `${base}${segment.name}-reverse.webp`);
-  }
+  let hasPlayed = false;
 
-  // Start downloading before the section reaches the viewport. These are small, cached images.
-  const preloaders = urls.map(src => {
-    const img = new Image();
-    img.decoding = 'async';
-    img.src = src;
-    return img;
-  });
-
-  let state = 0;          // 0=start, 1=scoop complete, 2=stir complete, 3=enjoy complete
-  let desiredState = 0;
-  let running = false;
-  let timer = 0;
-  let queuedRaf = 0;
-  let runId = 0;
-
-  const showSegment = (stepNumber, direction) => {
-    const segment = segments[stepNumber - 1];
-    if (!segment) return;
-
-    running = true;
-    const nextState = direction > 0 ? stepNumber : stepNumber - 1;
-    const suffix = direction > 0 ? 'forward' : 'reverse';
-    const src = `${base}${segment.name}-${suffix}.webp`;
-    const thisRun = ++runId;
-
-    const img = new Image();
-    img.className = 'scroll-routine-animation';
-    img.alt = '';
-    img.decoding = 'async';
-    img.draggable = false;
-    let begun = false;
-
-    const begin = () => {
-      if (begun || thisRun !== runId) return;
-      begun = true;
-      stage.replaceChildren(img);
-      requestAnimationFrame(() => media.classList.add('is-animation-ready'));
-      clearTimeout(timer);
-      timer = window.setTimeout(() => {
-        if (thisRun !== runId) return;
-        state = nextState;
-        running = false;
-        runTowardDesired();
-      }, segment.ms);
-    };
-
-    img.addEventListener('load', begin, { once: true });
-    img.addEventListener('error', () => {
-      // The static poster remains visible if an animation asset ever fails.
-      state = nextState;
-      running = false;
-      runTowardDesired();
-    }, { once: true });
-    img.src = src;
-
-    // Cached images can already be complete before the load listener gets a turn.
-    if (img.complete && img.naturalWidth > 0) begin();
+  const playOnce = () => {
+    if (hasPlayed) return;
+    hasPlayed = true;
+    video.muted = true;
+    video.playsInline = true;
+    video.preload = 'auto';
+    try { video.currentTime = 0; } catch (_) {}
+    const promise = video.play();
+    if (promise && typeof promise.catch === 'function') {
+      promise.catch(() => {
+        // A muted inline video is normally allowed. If a browser still blocks it,
+        // leave the poster in place rather than introducing fallback animation logic.
+        hasPlayed = false;
+      });
+    }
   };
 
-  function runTowardDesired() {
-    if (running || desiredState === state) return;
-    if (desiredState > state) showSegment(state + 1, 1);
-    else showSegment(state, -1);
-  }
-
-  const updateDestination = () => {
-    queuedRaf = 0;
-    const sectionRect = section.getBoundingClientRect();
-
-    if (sectionRect.top > window.innerHeight * .92) {
-      desiredState = 0;
-      steps.forEach((step, i) => {
-        step.classList.toggle('is-active', i === 0);
-        step.style.opacity = i === 0 ? '1' : '.34';
-        step.style.transform = 'none';
-      });
-      runTowardDesired();
-      return;
-    }
-
-    if (sectionRect.bottom < window.innerHeight * .08) {
-      desiredState = 3;
-      steps.forEach((step, i) => {
-        step.classList.toggle('is-active', i === 2);
-        step.style.opacity = i === 2 ? '1' : '.34';
-        step.style.transform = 'none';
-      });
-      runTowardDesired();
-      return;
-    }
-
-    const focusY = window.innerHeight * .5;
-    let nearest = 0;
-    let nearestDistance = Infinity;
-
-    steps.forEach((step, index) => {
-      const r = step.getBoundingClientRect();
-      const center = r.top + r.height * .5;
-      const distance = Math.abs(center - focusY);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = index;
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.42) {
+          playOnce();
+          if (hasPlayed) observer.disconnect();
+        }
       }
-      const focus = Math.max(0, Math.min(1, 1 - distance / Math.max(window.innerHeight * .34, 220)));
-      step.style.opacity = String(.34 + focus * .66);
-      step.style.transform = `translateY(${(1 - focus) * 3}px)`;
-    });
-
-    steps.forEach((step, index) => step.classList.toggle('is-active', index === nearest));
-    desiredState = nearest + 1;
-    runTowardDesired();
-  };
-
-  const scheduleUpdate = () => {
-    if (!queuedRaf) queuedRaf = requestAnimationFrame(updateDestination);
-  };
-
-  window.addEventListener('scroll', scheduleUpdate, { passive: true });
-  window.addEventListener('resize', scheduleUpdate);
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) scheduleUpdate();
-  });
-
-  updateDestination();
+    }, { threshold: [0.42, 0.55] });
+    observer.observe(section);
+  } else {
+    const onScroll = () => {
+      const rect = section.getBoundingClientRect();
+      const visible = Math.min(rect.bottom, innerHeight) - Math.max(rect.top, 0);
+      if (visible / Math.min(rect.height, innerHeight) >= 0.42) {
+        playOnce();
+        if (hasPlayed) window.removeEventListener('scroll', onScroll);
+      }
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
 })();

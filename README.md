@@ -1,4 +1,4 @@
-AvoKind v3.23
+AvoKind v3.27
 
 # AvoKind prototype v3.19
 
@@ -99,3 +99,15 @@ Create another static HTML file in `site/blog/` by copying an existing article a
 
 ## v3.24 routine playback fix
 The three-step Home routine now uses short animated WebP sequences instead of scripted MP4 playback. This removes browser autoplay/play() permission as a failure mode while keeping forward and reverse semantic steps.
+
+## v3.25 routine micro-scenes
+The Home preparation demo is now three independent, purpose-edited clips: Scoop, Stir, and Enjoy. Scroll only selects the active step; each clip plays once at native speed and holds its final frame. Fast scrolling can skip directly to the relevant step instead of scrubbing or queueing a long timeline. Native H.264 MP4 is the primary path with an animated WebP fallback for playback failures. The section remains normal-flow content with no sticky scroll lock.
+
+
+## v3.27
+
+Simplified the Home preparation section to normal media playback. The full preparation film now plays once when roughly 42% of the section is visible, then holds on its final frame. The section no longer scrubs, swaps clips, reverses playback, sticks to the viewport, or maps scroll distance to media time. Scoop / Stir / Enjoy remain static explanatory copy beside the film. The prepared film is a 1280×720 H.264/yuv420p MP4 with fast-start metadata for predictable web playback.
+
+
+## v3.27
+Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigation now reads Shop / Why AvoKind / Recipes. The page separates product facts, formulation rationale, ingredient research, process tradeoffs, routine fit, taste expectations, and evidence boundaries.
