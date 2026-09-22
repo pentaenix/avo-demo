@@ -110,4 +110,4 @@ Simplified the Home preparation section to normal media playback. The full prepa
 
 
 ## v3.27
-Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigation now reads Shop / Why AvoKind / Recipes. The page separates product facts, formulation rationale, ingredient research, process tradeoffs, routine fit, taste expectations, and evidence boundaries.
+Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigation reads Shop / Benefits / Recipes; the Benefits page keeps the internal “Why AvoKind” framing. The page separates product facts, formulation rationale, ingredient research, process tradeoffs, routine fit, taste expectations, and evidence boundaries.
