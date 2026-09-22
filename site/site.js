@@ -25,32 +25,7 @@
 
 
 
-(() => {
-  const buttons = [...document.querySelectorAll('[data-cart-button]')];
-  if (!buttons.length) return;
-  const KEY = 'avokind-demo-cart-count';
-  const getCount = () => Math.max(0, Number(localStorage.getItem(KEY) || 0) || 0);
-  const sync = () => {
-    const count = getCount();
-    document.querySelectorAll('[data-cart-count]').forEach(node => node.textContent = String(count));
-    buttons.forEach(button => button.setAttribute('aria-label', `Cart, ${count} item${count === 1 ? '' : 's'}`));
-  };
-  const toast = document.createElement('div');
-  toast.className = 'global-cart-toast';
-  toast.setAttribute('role','status');
-  toast.setAttribute('aria-live','polite');
-  document.body.appendChild(toast);
-  let timer;
-  buttons.forEach(button => button.addEventListener('click', () => {
-    const count = getCount();
-    toast.textContent = count ? `Demo cart: ${count} pouch${count === 1 ? '' : 'es'}.` : 'Your demo cart is empty.';
-    toast.classList.add('is-visible');
-    clearTimeout(timer);
-    timer = setTimeout(() => toast.classList.remove('is-visible'), 1800);
-  }));
-  sync();
-  window.addEventListener('storage', sync);
-})();
+
 
 // v3.10 — Home ingredient rail mirrors the Shop carousel interaction.
 (() => {
@@ -137,7 +112,7 @@
   let lastTrigger = null;
 
   const open = (trigger) => {
-    if (!drawer || trigger.closest('[data-clone="true"]')) return;
+    if (!drawer) return;
     lastTrigger = trigger;
     const item = research[trigger.dataset.name] || ['', '', '#'];
     img.src = trigger.dataset.src; img.alt = trigger.dataset.name;

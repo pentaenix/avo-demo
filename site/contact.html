@@ -45,7 +45,7 @@
       <div class="contact-field full"><label for="contact-subject">Subject</label><input id="contact-subject" name="subject" required></div>
       <div class="contact-field full"><label for="contact-message">Message</label><textarea id="contact-message" name="message" required></textarea></div>
       <button class="btn btn-dark" type="submit">Email AvoKind <span aria-hidden="true">→</span></button>
-      <p class="contact-note">This static demo opens your default email app instead of sending data to a server.</p>
+      <p class="contact-note">Submitting this form opens your email app with the message prefilled.</p>
     </form>
   </div>
 </section></main>
@@ -69,5 +69,6 @@
 </footer>
 <script src="./site.js" defer></script>
 <script>document.querySelector('[data-contact-form]')?.addEventListener('submit',function(e){e.preventDefault();const f=new FormData(this);const subject=encodeURIComponent(f.get('subject')||'AvoKind website question');const body=encodeURIComponent(`Name: ${f.get('name')||''}\nEmail: ${f.get('email')||''}\n\n${f.get('message')||''}`);window.location.href=`mailto:contact@avokind.com?subject=${subject}&body=${body}`;});</script>
+  <script src="./cart.js" defer></script>
 </body>
 </html>

@@ -455,11 +455,27 @@
   };
   syncCart();
   $$('[data-add-to-cart]').forEach((button) => button.addEventListener('click', () => {
-    state.cart += state.quantity;
+    const unitTotal = totals() / state.quantity;
+    const line = {
+      id: `green-boost-${state.size}-${state.plan}`,
+      product: 'Green Boost',
+      size: state.size,
+      plan: state.plan,
+      quantity: state.quantity,
+      unitPrice: unitTotal,
+      image: './assets/gallery-product.jpg'
+    };
+    let lines = [];
+    try { lines = JSON.parse(localStorage.getItem('avokind-cart-lines') || '[]'); } catch (_) {}
+    const existing = lines.find((item) => item.id === line.id);
+    if (existing) existing.quantity += line.quantity;
+    else lines.push(line);
+    localStorage.setItem('avokind-cart-lines', JSON.stringify(lines));
+    state.cart = lines.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
     syncCart();
-    showToast(`${state.quantity} pouch${state.quantity === 1 ? '' : 'es'} added to cart.`);
+    window.dispatchEvent(new CustomEvent('avokind-cart-change'));
+    window.dispatchEvent(new CustomEvent('avokind-cart-open'));
   }));
-  $('[data-cart-button]')?.addEventListener('click', () => showToast(state.cart ? `Demo cart: ${state.cart} pouch${state.cart === 1 ? '' : 'es'}.` : 'Your demo cart is empty.'));
 
   const menuButton = $('[data-menu-button]');
   const mobileNav = $('[data-mobile-nav]');
@@ -486,7 +502,7 @@
     showPrototypeToast.timer = setTimeout(() => toast.classList.remove('is-visible'), 1800);
   }
 
-  // Demo review controls. Content is fictional and exists only for this design prototype.
+  // Review controls.
   const reviewFilters = $$('[data-review-filter]');
   const ratingFilters = $$('[data-rating-filter]');
   const reviewStatus = $('[data-review-status]');

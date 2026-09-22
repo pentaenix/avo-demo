@@ -111,3 +111,11 @@ Simplified the Home preparation section to normal media playback. The full prepa
 
 ## v3.27
 Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigation reads Shop / Benefits / Recipes; the Benefits page keeps the internal “Why AvoKind” framing. The page separates product facts, formulation rationale, ingredient research, process tradeoffs, routine fit, taste expectations, and evidence boundaries.
+
+## v3.29 refinement
+
+- Recipes: removed the dark "No blender required" interlude and replaced the dark closing block with a light endcap.
+- Footer: retained a single green boundary wave and removed decorative contour lines; increased footer body-copy contrast.
+- Shop: repaired the freeze-drying stat layout and integrated the 88% recommendation statistic into the review summary; removed visible demo-review copy.
+- Home: centered the reviews and recipes sections, replaced the "Your Boost, Your Way" composite with a real AvoKind lifestyle image, and repaired ingredient + controls across looped carousel items.
+- Cart: added a reusable cart drawer on all pages with line item, quantity controls, remove, subtotal, and checkout UI. Shop selections now populate the cart.
