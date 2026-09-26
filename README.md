@@ -1,3 +1,15 @@
+AvoKind prototype v3.35
+
+Refined the Home hero headline for responsive clarity: slightly smaller display type, three intentional phrase lines, and viewport scaling that preserves “A whole-food / smoothie powder. / Ready in 30 seconds.” instead of allowing awkward browser-balanced fragments.
+
+AvoKind prototype v3.34
+
+Rebuilt the Home hero around the approved AvoKind product-preparation image: full-width static media, left-side clarity copy, three product-definition bullets, and direct purchase/ingredients actions.
+
+AvoKind prototype v3.33
+
+Full-bleed static home hero restored: real product-preparation photography, clarity-first headline, subtitle, three facts, and purchase CTA.
+
 AvoKind v3.27
 
 # AvoKind prototype v3.19
@@ -119,3 +131,12 @@ Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigati
 - Shop: repaired the freeze-drying stat layout and integrated the 88% recommendation statistic into the review summary; removed visible demo-review copy.
 - Home: centered the reviews and recipes sections, replaced the "Your Boost, Your Way" composite with a real AvoKind lifestyle image, and repaired ingredient + controls across looped carousel items.
 - Cart: added a reusable cart drawer on all pages with line item, quantity controls, remove, subtotal, and checkout UI. Shop selections now populate the cart.
+
+## v3.31 hero clarity pass
+
+- Rebuilt the Home hero around first-visit comprehension rather than brand mood.
+- Headline now identifies Green Boost as a whole-food smoothie powder and states the ~30-second preparation time.
+- Added a direct subtitle and three product-definition bullets.
+- Added the supplied landscape film as muted looping atmosphere on the right side of the hero.
+- Kept the real Green Boost product visible as a separate product layer rather than asking the video to depict packaging.
+- Added a static poster/reduced-motion fallback.
