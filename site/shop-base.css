@@ -35,6 +35,7 @@ main>section{max-width:var(--max);margin:0 auto}.section-pad{padding:80px 28px}h
   user-select:none;
   -webkit-user-select:none;
   overscroll-behavior-x:contain;
+  touch-action:pan-y;
 }
 .gallery-track.is-dragging{
   cursor:grabbing;
@@ -253,3 +254,8 @@ main>section{max-width:var(--max);margin:0 auto}.section-pad{padding:80px 28px}h
 .drawer-research a{font-size:10.5px}.drawer-research small{font-size:9.5px}
 .nutrition-table thead th{font-size:11px}.nutrition-note{font-size:11px}
 .mobile-buy-bar span{font-size:11px}
+
+/* v3.41 — continuous ingredient rail must not inherit the old smooth-scroll behavior. */
+.ingredients-track{
+  scroll-behavior:auto;
+}

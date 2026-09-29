@@ -2081,7 +2081,7 @@ body.cart-open{overflow:hidden}
   margin:0;
   max-width:690px;
   color:var(--close);
-  font:600 clamp(48px,4.45vw,72px)/.97 var(--sans);
+  font:500 clamp(48px,4.45vw,72px)/.97 var(--sans);
   letter-spacing:-.052em;
 }
 .home-hero-v334-copy h1 span{

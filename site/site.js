@@ -48,6 +48,7 @@
   };
 
   const originals = [...track.children];
+  let loopWidth = 0;
   if (originals.length) {
     const before = document.createDocumentFragment();
     const after = document.createDocumentFragment();
@@ -63,7 +64,6 @@
     });
     track.prepend(before); track.append(after);
 
-    let loopWidth = 0;
     requestAnimationFrame(() => {
       const cards = [...track.children];
       const firstOriginal = cards[originals.length];
@@ -81,23 +81,54 @@
     }, {passive:true});
   }
 
-  let dragging = false, startX = 0, startScroll = 0;
+  let dragging = false, startX = 0, lastX = 0, startScroll = 0;
+  let travelDirection = 1; // 1 = cards move right, -1 = cards move left.
+  let resumeAt = performance.now() + 900;
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+  const resumeDelay = 2200;
+  const autoSpeed = 13; // pixels per second; deliberately slow.
+
+  const pauseAutoplay = (delay = resumeDelay) => {
+    resumeAt = performance.now() + delay;
+  };
+
   track.addEventListener('pointerdown', (event) => {
+    pauseAutoplay();
     if (event.target.closest('[data-home-ingredient-trigger]')) return;
-    dragging = true; startX = event.clientX; startScroll = track.scrollLeft;
+    dragging = true; startX = event.clientX; lastX = event.clientX; startScroll = track.scrollLeft;
     track.classList.add('is-dragging');
     track.setPointerCapture?.(event.pointerId);
   });
   track.addEventListener('pointermove', (event) => {
     if (!dragging) return;
+    lastX = event.clientX;
     track.scrollLeft = startScroll - (event.clientX - startX);
   });
   const finish = (event) => {
+    if (!dragging) return;
+    const endX = Number.isFinite(event?.clientX) ? event.clientX : lastX;
+    const delta = endX - startX;
+    if (Math.abs(delta) > 3) travelDirection = delta > 0 ? 1 : -1;
     dragging = false; track.classList.remove('is-dragging');
+    pauseAutoplay();
     if (event?.pointerId != null && track.hasPointerCapture?.(event.pointerId)) track.releasePointerCapture(event.pointerId);
   };
   track.addEventListener('pointerup', finish); track.addEventListener('pointercancel', finish);
   track.addEventListener('dragstart', (event) => event.preventDefault());
+
+  if (!reducedMotion) {
+    let lastFrame = performance.now();
+    const autoplay = (now) => {
+      const elapsed = Math.min(50, now - lastFrame);
+      lastFrame = now;
+      if (!dragging && loopWidth && now >= resumeAt && !document.hidden) {
+        // Decreasing scrollLeft makes the cards themselves travel to the right.
+        track.scrollLeft -= travelDirection * autoSpeed * (elapsed / 1000);
+      }
+      requestAnimationFrame(autoplay);
+    };
+    requestAnimationFrame(autoplay);
+  }
 
   const drawer = document.querySelector('[data-home-ingredient-drawer]');
   const img = drawer?.querySelector('[data-home-drawer-image]');

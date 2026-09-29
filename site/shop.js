@@ -307,12 +307,21 @@
     if (event.key === 'ArrowRight') { event.preventDefault(); goGallery(galleryIndex + 1); }
   });
 
-  // Infinite, freely draggable ingredient rail. Duplicate sets are visual only.
+  // Infinite ingredient rail: slow autoplay + direct drag interaction.
+  // ingredientDirection describes the VISUAL direction of the cards:
+  //  1 = cards move right, -1 = cards move left.
   const ingredientsTrack = $('[data-ingredients-track]');
   let ingredientLoopWidth = 0;
   let ingredientDragging = false;
   let ingredientDragStartX = 0;
   let ingredientDragStartScroll = 0;
+  let ingredientDirection = 1;
+  let ingredientPauseUntil = 0;
+  let ingredientLastFrame = 0;
+  let ingredientPosition = 0; // fractional scroll position so slow autoplay survives pixel rounding
+  const ingredientAutoSpeed = 18; // pixels per second; slow, but visibly continuous
+  const ingredientResumeDelay = 2200;
+  const ingredientReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)');
 
   if (ingredientsTrack) {
     const originals = [...ingredientsTrack.children];
@@ -335,33 +344,77 @@
     ingredientsTrack.prepend(beforeFragment);
     ingredientsTrack.append(afterFragment);
 
-    requestAnimationFrame(() => {
+    const centerIngredientRail = () => {
       const all = [...ingredientsTrack.children];
       const firstOriginal = all[originals.length];
       const firstAfter = all[originals.length * 2];
       if (!firstOriginal || !firstAfter) return;
       ingredientLoopWidth = firstAfter.offsetLeft - firstOriginal.offsetLeft;
-      ingredientsTrack.scrollLeft = firstOriginal.offsetLeft;
-    });
+      ingredientPosition = firstOriginal.offsetLeft;
+      ingredientsTrack.scrollLeft = ingredientPosition;
+    };
+    requestAnimationFrame(centerIngredientRail);
 
-    ingredientsTrack.addEventListener('scroll', () => {
+    const normalizeIngredientRail = () => {
       if (!ingredientLoopWidth) return;
       const maxScroll = ingredientsTrack.scrollWidth - ingredientsTrack.clientWidth;
-      if (ingredientsTrack.scrollLeft <= 2) {
-        ingredientsTrack.scrollLeft += ingredientLoopWidth;
-      } else if (ingredientsTrack.scrollLeft >= maxScroll - 2) {
-        ingredientsTrack.scrollLeft -= ingredientLoopWidth;
+      const current = ingredientsTrack.scrollLeft;
+      let adjusted = current;
+      if (current <= 2) {
+        adjusted = current + ingredientLoopWidth;
+      } else if (current >= maxScroll - 2) {
+        adjusted = current - ingredientLoopWidth;
+      }
+      if (adjusted !== current) {
+        // Preserve the fractional autoplay remainder while jumping between
+        // visually identical copies of the ingredient set.
+        ingredientPosition += adjusted - current;
+        ingredientsTrack.scrollLeft = adjusted;
+      }
+    };
+    ingredientsTrack.addEventListener('scroll', () => {
+      normalizeIngredientRail();
+      // Native/manual scrolling owns the position while autoplay is paused.
+      // During autoplay we deliberately keep the fractional accumulator rather
+      // than replacing it with the browser's rounded scrollLeft value.
+      if (
+        ingredientDragging ||
+        performance.now() < ingredientPauseUntil ||
+        ingredientReducedMotion?.matches
+      ) {
+        ingredientPosition = ingredientsTrack.scrollLeft;
       }
     }, { passive: true });
 
+    const animateIngredientRail = (now) => {
+      if (!ingredientLastFrame) ingredientLastFrame = now;
+      const seconds = Math.min((now - ingredientLastFrame) / 1000, 0.05);
+      ingredientLastFrame = now;
+
+      if (
+        ingredientLoopWidth &&
+        !ingredientDragging &&
+        now >= ingredientPauseUntil &&
+        !ingredientReducedMotion?.matches
+      ) {
+        // Decreasing scrollLeft makes the CONTENT move visually to the right.
+        ingredientPosition -= ingredientDirection * ingredientAutoSpeed * seconds;
+        ingredientsTrack.scrollLeft = ingredientPosition;
+        normalizeIngredientRail();
+      }
+      requestAnimationFrame(animateIngredientRail);
+    };
+    requestAnimationFrame(animateIngredientRail);
+
     ingredientsTrack.addEventListener('pointerdown', (event) => {
-      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
       // The + control must remain a normal button. Starting a drag here would
       // prevent its click event and stop the ingredient drawer from opening.
       if (event.target.closest('[data-ingredient-trigger]')) return;
       ingredientDragging = true;
+      ingredientPauseUntil = Infinity;
       ingredientDragStartX = event.clientX;
-      ingredientDragStartScroll = ingredientsTrack.scrollLeft;
+      ingredientPosition = ingredientsTrack.scrollLeft;
+      ingredientDragStartScroll = ingredientPosition;
       ingredientsTrack.classList.add('is-dragging');
       ingredientsTrack.setPointerCapture?.(event.pointerId);
       event.preventDefault();
@@ -369,13 +422,19 @@
 
     ingredientsTrack.addEventListener('pointermove', (event) => {
       if (!ingredientDragging) return;
-      ingredientsTrack.scrollLeft = ingredientDragStartScroll - (event.clientX - ingredientDragStartX);
+      const delta = event.clientX - ingredientDragStartX;
+      if (Math.abs(delta) > 1) ingredientDirection = delta > 0 ? 1 : -1;
+      ingredientPosition = ingredientDragStartScroll - delta;
+      ingredientsTrack.scrollLeft = ingredientPosition;
+      normalizeIngredientRail();
       event.preventDefault();
     });
 
     const finishIngredientDrag = (event) => {
       if (!ingredientDragging) return;
       ingredientDragging = false;
+      ingredientPosition = ingredientsTrack.scrollLeft;
+      ingredientPauseUntil = performance.now() + ingredientResumeDelay;
       ingredientsTrack.classList.remove('is-dragging');
       if (event?.pointerId != null && ingredientsTrack.hasPointerCapture?.(event.pointerId)) {
         ingredientsTrack.releasePointerCapture(event.pointerId);
@@ -383,7 +442,30 @@
     };
     ingredientsTrack.addEventListener('pointerup', finishIngredientDrag);
     ingredientsTrack.addEventListener('pointercancel', finishIngredientDrag);
+    ingredientsTrack.addEventListener('lostpointercapture', () => {
+      if (ingredientDragging) finishIngredientDrag();
+    });
     ingredientsTrack.addEventListener('dragstart', (event) => event.preventDefault());
+
+    // Trackpad / mouse-wheel horizontal navigation also becomes the new
+    // autoplay direction, then gets the same short rest before motion resumes.
+    ingredientsTrack.addEventListener('wheel', (event) => {
+      const horizontal = Math.abs(event.deltaX) >= Math.abs(event.deltaY) ? event.deltaX : 0;
+      if (!horizontal) return;
+      ingredientDirection = horizontal > 0 ? -1 : 1;
+      ingredientPauseUntil = performance.now() + ingredientResumeDelay;
+    }, { passive: true });
+
+    window.addEventListener('resize', () => requestAnimationFrame(() => {
+      if (!ingredientLoopWidth) return;
+      const oldLoopWidth = ingredientLoopWidth;
+      const all = [...ingredientsTrack.children];
+      const firstOriginal = all[originals.length];
+      const firstAfter = all[originals.length * 2];
+      if (!firstOriginal || !firstAfter) return;
+      ingredientLoopWidth = firstAfter.offsetLeft - firstOriginal.offsetLeft;
+      if (oldLoopWidth > 0) normalizeIngredientRail();
+    }));
   }
 
   const drawer = $('[data-ingredient-drawer]');

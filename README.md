@@ -1,3 +1,23 @@
+AvoKind prototype v3.41
+
+Fixed the ingredient carousel autoplay at runtime: removed inherited smooth-scroll behavior that was fighting the animation loop and added a fractional position accumulator so slow sub-pixel motion is preserved. Verified in Chromium that autoplay advances continuously, pauses after manual drag, and resumes in the last drag direction.
+
+AvoKind prototype v3.40
+
+Fixed the ingredient carousel autoplay implementation. The rail now visibly drifts to the right on load, remains draggable with mouse/touch, pauses for 2.2 seconds after interaction, then resumes in the last visual drag direction. Horizontal trackpad movement also updates the resume direction. Reduced-motion preferences still disable autoplay while preserving manual interaction.
+
+AvoKind prototype v3.39
+
+Rewrote the Home ingredient-carousel copy to be more concrete and product-specific. Added slow continuous carousel motion to the right; manual dragging pauses the motion briefly, then autoplay resumes in the direction the visitor last dragged. Reduced-motion preferences disable autoplay while preserving manual interaction.
+
+AvoKind prototype v3.38
+
+Restored the four-fact banner directly beneath the Home hero and removed the larger product-feature block that followed it. Preserved the v3.37 lighter hero headline weight and all other responsive hero refinements.
+
+AvoKind prototype v3.37
+
+Matched the Home hero title to the lighter Manrope display treatment used in the following content section by reducing the headline weight from 600 to 500, without changing its responsive sizing or intentional three-line structure.
+
 AvoKind prototype v3.35
 
 Refined the Home hero headline for responsive clarity: slightly smaller display type, three intentional phrase lines, and viewport scaling that preserves “A whole-food / smoothie powder. / Ready in 30 seconds.” instead of allowing awkward browser-balanced fragments.
