@@ -27,7 +27,7 @@
 
 
 
-// v3.10 — Home ingredient rail mirrors the Shop carousel interaction.
+// v3.43 — Home ingredient rail: transform-based continuous belt with inertial interaction.
 (() => {
   const track = document.querySelector('[data-home-ingredients-track]');
   if (!track) return;
@@ -48,87 +48,183 @@
   };
 
   const originals = [...track.children];
-  let loopWidth = 0;
-  if (originals.length) {
-    const before = document.createDocumentFragment();
-    const after = document.createDocumentFragment();
-    originals.forEach((card) => {
-      const a = card.cloneNode(true);
-      const b = card.cloneNode(true);
-      [a,b].forEach((clone) => {
-        clone.dataset.clone = 'true';
-        clone.setAttribute('aria-hidden','true');
-        clone.querySelectorAll('button,a').forEach((el) => el.tabIndex = -1);
-      });
-      before.appendChild(a); after.appendChild(b);
-    });
-    track.prepend(before); track.append(after);
+  if (!originals.length) return;
 
-    requestAnimationFrame(() => {
-      const cards = [...track.children];
-      const firstOriginal = cards[originals.length];
-      const firstAfter = cards[originals.length * 2];
-      if (!firstOriginal || !firstAfter) return;
-      loopWidth = firstAfter.offsetLeft - firstOriginal.offsetLeft;
-      track.scrollLeft = firstOriginal.offsetLeft;
-    });
+  const belt = document.createElement('div');
+  belt.className = 'home-ingredients-belt';
 
-    track.addEventListener('scroll', () => {
-      if (!loopWidth) return;
-      const max = track.scrollWidth - track.clientWidth;
-      if (track.scrollLeft <= 2) track.scrollLeft += loopWidth;
-      else if (track.scrollLeft >= max - 2) track.scrollLeft -= loopWidth;
-    }, {passive:true});
-  }
+  const makeSet = (isClone) => originals.map((card) => {
+    const item = isClone ? card.cloneNode(true) : card;
+    if (isClone) {
+      item.dataset.clone = 'true';
+      item.setAttribute('aria-hidden', 'true');
+      item.querySelectorAll('button,a').forEach((el) => el.tabIndex = -1);
+    }
+    return item;
+  });
 
-  let dragging = false, startX = 0, lastX = 0, startScroll = 0;
-  let travelDirection = 1; // 1 = cards move right, -1 = cards move left.
-  let resumeAt = performance.now() + 900;
-  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-  const resumeDelay = 2200;
-  const autoSpeed = 13; // pixels per second; deliberately slow.
+  const sets = [makeSet(true), makeSet(false), makeSet(true)];
+  sets.flat().forEach((card) => belt.appendChild(card));
+  track.replaceChildren(belt);
 
-  const pauseAutoplay = (delay = resumeDelay) => {
-    resumeAt = performance.now() + delay;
+  let setWidth = 0;
+  let position = 0;
+  let velocity = 0;
+  let cruiseDirection = 1; // +1 means cards travel visually to the right.
+  let mode = 'rest';
+  let resumeAt = performance.now() + 500;
+  let dragging = false;
+  let pointerId = null;
+  let startX = 0;
+  let lastX = 0;
+  let lastPointerTime = 0;
+  let dragVelocity = 0;
+  let wheelTimer = 0;
+
+  const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+  const cruiseSpeed = reducedMotion ? 8 : 18;
+  const restDuration = reducedMotion ? 2100 : 1650;
+  const gap = 28;
+
+  const normalize = () => {
+    if (!setWidth) return;
+    while (position >= 0) position -= setWidth;
+    while (position <= -setWidth * 2) position += setWidth;
+  };
+
+  const render = () => {
+    normalize();
+    belt.style.transform = `translate3d(${position.toFixed(3)}px,0,0)`;
+  };
+
+  const cardWidthForViewport = () => {
+    const width = track.clientWidth;
+    if (width <= 560) return width * .78;
+    if (width <= 820) return (width - 42) / 2.25;
+    if (width <= 1180) return (width - 84) / 4;
+    return (width - 140) / 6;
+  };
+
+  const layout = () => {
+    const previousWidth = setWidth;
+    const progress = previousWidth ? (-position % previousWidth) / previousWidth : 0;
+    const cardWidth = cardWidthForViewport();
+    belt.style.setProperty('--home-ingredient-card-width', `${cardWidth}px`);
+    setWidth = originals.length * (cardWidth + gap);
+    position = -setWidth * (1 + progress);
+    render();
+  };
+
+  const enterRest = (now = performance.now()) => {
+    velocity = 0;
+    mode = 'rest';
+    resumeAt = now + restDuration;
+  };
+
+  const beginInteraction = () => {
+    mode = 'manual';
+    velocity = 0;
+    window.clearTimeout(wheelTimer);
   };
 
   track.addEventListener('pointerdown', (event) => {
-    pauseAutoplay();
-    if (event.target.closest('[data-home-ingredient-trigger]')) return;
-    dragging = true; startX = event.clientX; lastX = event.clientX; startScroll = track.scrollLeft;
+    beginInteraction();
+    if (event.target.closest('[data-home-ingredient-trigger]')) {
+      enterRest();
+      return;
+    }
+    dragging = true;
+    pointerId = event.pointerId;
+    startX = lastX = event.clientX;
+    lastPointerTime = performance.now();
+    dragVelocity = 0;
     track.classList.add('is-dragging');
-    track.setPointerCapture?.(event.pointerId);
+    track.setPointerCapture?.(pointerId);
   });
+
   track.addEventListener('pointermove', (event) => {
-    if (!dragging) return;
+    if (!dragging || event.pointerId !== pointerId) return;
+    const now = performance.now();
+    const dx = event.clientX - lastX;
+    const dt = Math.max(8, now - lastPointerTime);
+    position += dx;
+    const instantaneous = dx / (dt / 1000);
+    dragVelocity = dragVelocity * .72 + instantaneous * .28;
     lastX = event.clientX;
-    track.scrollLeft = startScroll - (event.clientX - startX);
+    lastPointerTime = now;
+    render();
   });
-  const finish = (event) => {
-    if (!dragging) return;
-    const endX = Number.isFinite(event?.clientX) ? event.clientX : lastX;
-    const delta = endX - startX;
-    if (Math.abs(delta) > 3) travelDirection = delta > 0 ? 1 : -1;
-    dragging = false; track.classList.remove('is-dragging');
-    pauseAutoplay();
-    if (event?.pointerId != null && track.hasPointerCapture?.(event.pointerId)) track.releasePointerCapture(event.pointerId);
+
+  const finishDrag = (event) => {
+    if (!dragging || (event?.pointerId != null && event.pointerId !== pointerId)) return;
+    const total = lastX - startX;
+    if (Math.abs(total) > 3) cruiseDirection = total > 0 ? 1 : -1;
+    dragging = false;
+    track.classList.remove('is-dragging');
+    if (pointerId != null && track.hasPointerCapture?.(pointerId)) track.releasePointerCapture(pointerId);
+    pointerId = null;
+
+    const launch = Math.max(-520, Math.min(520, dragVelocity * .55));
+    if (Math.abs(launch) > 24) {
+      velocity = launch;
+      cruiseDirection = velocity > 0 ? 1 : -1;
+      mode = 'coast';
+    } else {
+      enterRest();
+    }
   };
-  track.addEventListener('pointerup', finish); track.addEventListener('pointercancel', finish);
+
+  track.addEventListener('pointerup', finishDrag);
+  track.addEventListener('pointercancel', finishDrag);
   track.addEventListener('dragstart', (event) => event.preventDefault());
 
-  if (!reducedMotion) {
-    let lastFrame = performance.now();
-    const autoplay = (now) => {
-      const elapsed = Math.min(50, now - lastFrame);
-      lastFrame = now;
-      if (!dragging && loopWidth && now >= resumeAt && !document.hidden) {
-        // Decreasing scrollLeft makes the cards themselves travel to the right.
-        track.scrollLeft -= travelDirection * autoSpeed * (elapsed / 1000);
+  track.addEventListener('wheel', (event) => {
+    if (Math.abs(event.deltaX) < Math.abs(event.deltaY) || Math.abs(event.deltaX) < 1) return;
+    event.preventDefault();
+    beginInteraction();
+    const dx = -event.deltaX;
+    position += dx;
+    if (Math.abs(dx) > .5) cruiseDirection = dx > 0 ? 1 : -1;
+    render();
+    window.clearTimeout(wheelTimer);
+    wheelTimer = window.setTimeout(() => enterRest(), 180);
+  }, {passive:false});
+
+  track.addEventListener('focusin', () => {
+    if (!dragging) beginInteraction();
+  });
+  track.addEventListener('focusout', () => {
+    if (!track.contains(document.activeElement)) enterRest();
+  });
+
+  let lastFrame = performance.now();
+  const animate = (now) => {
+    const dt = Math.min(40, now - lastFrame) / 1000;
+    lastFrame = now;
+
+    if (!document.hidden && !dragging && setWidth) {
+      if (mode === 'coast') {
+        position += velocity * dt;
+        velocity *= Math.exp(-5.8 * dt);
+        if (Math.abs(velocity) < 7) enterRest(now);
+      } else if (mode === 'rest') {
+        if (now >= resumeAt) mode = 'cruise';
+      } else if (mode === 'cruise') {
+        const target = cruiseDirection * cruiseSpeed;
+        const blend = 1 - Math.exp(-2.8 * dt);
+        velocity += (target - velocity) * blend;
+        position += velocity * dt;
       }
-      requestAnimationFrame(autoplay);
-    };
-    requestAnimationFrame(autoplay);
-  }
+      render();
+    }
+
+    requestAnimationFrame(animate);
+  };
+
+  const observer = new ResizeObserver(layout);
+  observer.observe(track);
+  layout();
+  requestAnimationFrame(animate);
 
   const drawer = document.querySelector('[data-home-ingredient-drawer]');
   const img = drawer?.querySelector('[data-home-drawer-image]');
@@ -144,6 +240,7 @@
 
   const open = (trigger) => {
     if (!drawer) return;
+    beginInteraction();
     lastTrigger = trigger;
     const item = research[trigger.dataset.name] || ['', '', '#'];
     img.src = trigger.dataset.src; img.alt = trigger.dataset.name;
@@ -159,6 +256,7 @@
     if (!drawer) return;
     drawer.classList.remove('is-active'); drawer.setAttribute('aria-hidden','true');
     document.body.style.overflow = '';
+    enterRest();
     lastTrigger?.focus();
   };
 

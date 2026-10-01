@@ -1,6 +1,10 @@
-AvoKind prototype v3.41
+AvoKind prototype v3.45
 
-Fixed the ingredient carousel autoplay at runtime: removed inherited smooth-scroll behavior that was fighting the animation loop and added a fractional position accumulator so slow sub-pixel motion is preserved. Verified in Chromium that autoplay advances continuously, pauses after manual drag, and resumes in the last drag direction.
+Added a Home social-proof block between the ingredient carousel and the “About thirty seconds” routine introduction. The layout mirrors the supplied three-column review reference while using AvoKind’s Manrope / STIX Two Text / Roboto Mono typography, brand green stars, and existing verified review copy from the product page.
+
+AvoKind prototype v3.43
+
+Rebuilt the Home ingredient carousel as a transform-driven continuous belt. It now uses sub-pixel GPU-composited motion, restrained inertial dragging, a short rest after interaction, eased return to the user’s last drag direction, horizontal trackpad support, and subtle edge masking. Ingredient detail drawers pause the belt until they are closed.
 
 AvoKind prototype v3.40
 
@@ -160,3 +164,16 @@ Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigati
 - Added the supplied landscape film as muted looping atmosphere on the right side of the hero.
 - Kept the real Green Boost product visible as a separate product layer rather than asking the video to depict packaging.
 - Added a static poster/reduced-motion fallback.
+
+
+## v3.45
+- Replaced all 12 ingredient image assets with the new warm editorial photography set.
+- Green apple replaces the rejected red-apple generation; no duplicate legacy ingredient images are retained.
+
+- v3.46: Made ingredient cards taller / more portrait-oriented and moved ingredient names into a frosted glass overlay pill on the image, with a more polished plus button treatment on both the homepage and shop ingredient carousels.
+
+- v3.47: Removed rounded ingredient card corners and changed the label treatment to a full-width straight-edged bottom band; also aligned testimonial metadata rows in the “What People Are Saying” block.
+
+- v3.48: Reduced ingredient bottom-band height by about 25% and softened the plus action so it no longer competes with the photography or ingredient name.
+
+- v3.49: Removed the homepage “About thirty seconds” preamble, Scoop/Stir/Enjoy routine section, and the older taste/texture review promo block. The newer “What People Are Saying” section remains.

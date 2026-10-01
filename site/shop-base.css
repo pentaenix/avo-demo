@@ -259,3 +259,187 @@ main>section{max-width:var(--max);margin:0 auto}.section-pad{padding:80px 28px}h
 .ingredients-track{
   scroll-behavior:auto;
 }
+
+
+/* v3.46 — Ingredient cards: taller portrait media + glass label overlay */
+.ingredient-card{
+  position:relative;
+  overflow:hidden;
+  border-radius:22px;
+  background:#ece5db;
+  box-shadow:0 18px 38px rgba(33,38,31,.08);
+}
+.ingredient-card>img{
+  width:100%;
+  aspect-ratio:4/5;
+  object-fit:cover;
+  border-radius:22px;
+}
+.ingredient-caption{
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:14px;
+  margin-top:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 10px 10px 14px;
+  border-radius:16px;
+  background:rgba(246,242,235,.38);
+  border:1px solid rgba(255,255,255,.34);
+  box-shadow:0 12px 30px rgba(15,23,15,.10);
+  backdrop-filter:blur(16px) saturate(135%);
+  -webkit-backdrop-filter:blur(16px) saturate(135%);
+}
+.ingredient-caption>span{
+  min-width:0;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.2;
+  color:#1b201b;
+  text-shadow:0 1px 0 rgba(255,255,255,.22);
+}
+.ingredient-caption button{
+  flex:0 0 34px;
+  width:34px;
+  height:34px;
+  border:1px solid rgba(255,255,255,.46);
+  border-radius:999px;
+  background:rgba(255,255,255,.48);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 16px rgba(0,0,0,.08);
+  display:grid;
+  place-items:center;
+  padding:0;
+}
+.ingredient-caption button:hover{
+  background:rgba(255,255,255,.62);
+  transform:translateY(-1px);
+}
+.ingredient-caption button:focus-visible{
+  outline:2px solid rgba(21,59,41,.35);
+  outline-offset:2px;
+}
+.ingredient-caption svg{
+  width:13px;
+  height:13px;
+  fill:none;
+  stroke:#1b201b;
+  stroke-width:1.35;
+  stroke-linecap:round;
+}
+@media(max-width:540px){
+  .ingredient-card{border-radius:18px}
+  .ingredient-card>img{border-radius:18px}
+  .ingredient-caption{left:10px;right:10px;bottom:10px;padding:9px 9px 9px 12px;border-radius:14px}
+  .ingredient-caption>span{font-size:12px}
+  .ingredient-caption button{width:32px;height:32px;flex-basis:32px}
+}
+
+
+/* v3.47 — Ingredient cards: straight-edged bottom band */
+.ingredient-card{
+  position:relative;
+  overflow:hidden;
+  border-radius:0;
+  background:#ece5db;
+  box-shadow:none;
+}
+.ingredient-card>img{
+  width:100%;
+  aspect-ratio:4/5;
+  object-fit:cover;
+  border-radius:0;
+}
+.ingredient-caption{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  margin-top:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px 14px;
+  border-radius:0;
+  background:rgba(242,238,231,.58);
+  border:0;
+  border-top:1px solid rgba(255,255,255,.32);
+  box-shadow:none;
+  backdrop-filter:blur(14px) saturate(135%);
+  -webkit-backdrop-filter:blur(14px) saturate(135%);
+}
+.ingredient-caption>span{
+  min-width:0;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.2;
+  color:#1b201b;
+  text-shadow:none;
+}
+.ingredient-caption button{
+  flex:0 0 30px;
+  width:30px;
+  height:30px;
+  border:1px solid rgba(23,24,23,.12);
+  border-radius:0;
+  background:rgba(255,255,255,.46);
+  box-shadow:none;
+  display:grid;
+  place-items:center;
+  padding:0;
+}
+.ingredient-caption button:hover{
+  background:rgba(255,255,255,.64);
+  transform:none;
+}
+.ingredient-caption svg{
+  width:13px;
+  height:13px;
+  fill:none;
+  stroke:#1b201b;
+  stroke-width:1.35;
+  stroke-linecap:round;
+}
+@media(max-width:540px){
+  .ingredient-card,.ingredient-card>img{border-radius:0}
+  .ingredient-caption{left:0;right:0;bottom:0;padding:11px 12px;border-radius:0}
+  .ingredient-caption>span{font-size:12px}
+  .ingredient-caption button{width:28px;height:28px;flex-basis:28px}
+}
+
+
+/* v3.48 — Quieter ingredient labels */
+.ingredient-caption{
+  padding:8px 10px 8px 12px;
+  gap:9px;
+  background:rgba(242,238,231,.52);
+}
+.ingredient-caption>span{
+  font-size:12.5px;
+  line-height:1.15;
+}
+.ingredient-caption button{
+  flex:0 0 24px;
+  width:24px;
+  height:24px;
+  border-color:rgba(23,24,23,.09);
+  background:rgba(255,255,255,.28);
+}
+.ingredient-caption button:hover{
+  background:rgba(255,255,255,.42);
+}
+.ingredient-caption svg{
+  width:10px;
+  height:10px;
+  stroke:rgba(23,24,23,.72);
+  stroke-width:1.05;
+}
+@media(max-width:540px){
+  .ingredient-caption{padding:7px 9px 7px 10px}
+  .ingredient-caption>span{font-size:12px}
+  .ingredient-caption button{width:23px;height:23px;flex-basis:23px}
+  .ingredient-caption svg{width:9px;height:9px}
+}
