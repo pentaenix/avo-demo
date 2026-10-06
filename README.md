@@ -177,3 +177,13 @@ Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigati
 - v3.48: Reduced ingredient bottom-band height by about 25% and softened the plus action so it no longer competes with the photography or ingredient name.
 
 - v3.49: Removed the homepage “About thirty seconds” preamble, Scoop/Stir/Enjoy routine section, and the older taste/texture review promo block. The newer “What People Are Saying” section remains.
+
+- v3.50: Rebuilt the homepage “More than one way to use it” feature around the new sunlit whole-food image, with the heading, copy, and Recipes CTA kept as live HTML/CSS on the image’s open right-hand side.
+
+- v3.51: Reworked the “Your Boost, your way” section so the image is the block (no framed border/padding) and repositioned the live text into the open right side to avoid overlapping the food cluster.
+
+- v3.52: Fixed the recipe-section wave to overlay the image instead of sitting in a pale strip, and moved the recipe copy deeper into the true right-side negative space so it no longer collides with the food cluster.
+
+- v3.53: Nudged the “Your Boost, your way” copy block further right and slightly upward so it clears the cilantro cluster and uses the negative space more cleanly.
+
+- v3.54: Nudged the “Your Boost, your way” copy slightly further right and upward for cleaner use of the negative space.
