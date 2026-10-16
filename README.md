@@ -187,3 +187,9 @@ Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigati
 - v3.53: Nudged the “Your Boost, your way” copy block further right and slightly upward so it clears the cilantro cluster and uses the negative space more cleanly.
 
 - v3.54: Nudged the “Your Boost, your way” copy slightly further right and upward for cleaner use of the negative space.
+
+- v3.55: Converted the homepage “What People Are Saying” section into a horizontal scroll/drag rail, added the existing Paola M. 4-star review as a fourth item, and limited the homepage selection to existing 4–5 star reviews.
+
+- v3.56: Expanded the homepage testimonial rail to nine reviews for mock presentation: seven 5-star and two 4-star. Five new reviews are explicitly tagged in source as fictional demo placeholders for replacement before production.
+
+- v3.57: Added a new homepage “How to make it” editorial section using the generated scoop, mix, and enjoy images as a polished three-step routine block.

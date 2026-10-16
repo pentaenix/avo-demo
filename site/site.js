@@ -324,3 +324,47 @@
     onScroll();
   }
 })();
+
+
+// v3.55 — Mouse-drag support for the home testimonial rail.
+(() => {
+  const track = document.querySelector('[data-home-reviews-track]');
+  if (!track) return;
+
+  let dragging = false;
+  let pointerId = null;
+  let startX = 0;
+  let startScroll = 0;
+  let moved = false;
+
+  track.addEventListener('pointerdown', (event) => {
+    if (event.pointerType === 'touch') return;
+    dragging = true;
+    moved = false;
+    pointerId = event.pointerId;
+    startX = event.clientX;
+    startScroll = track.scrollLeft;
+    track.classList.add('is-dragging');
+    track.setPointerCapture?.(pointerId);
+  });
+
+  track.addEventListener('pointermove', (event) => {
+    if (!dragging || event.pointerId !== pointerId) return;
+    const delta = event.clientX - startX;
+    if (Math.abs(delta) > 3) moved = true;
+    track.scrollLeft = startScroll - delta;
+  });
+
+  const finish = (event) => {
+    if (!dragging || (event?.pointerId != null && event.pointerId !== pointerId)) return;
+    dragging = false;
+    track.classList.remove('is-dragging');
+    if (pointerId != null && track.hasPointerCapture?.(pointerId)) track.releasePointerCapture(pointerId);
+    pointerId = null;
+  };
+
+  track.addEventListener('pointerup', finish);
+  track.addEventListener('pointercancel', finish);
+  track.addEventListener('lostpointercapture', () => dragging && finish());
+  track.addEventListener('dragstart', (event) => event.preventDefault());
+})();
