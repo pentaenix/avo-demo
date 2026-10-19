@@ -193,3 +193,5 @@ Rebuilt `benefits.html` as the `Why AvoKind` decision page. The primary navigati
 - v3.56: Expanded the homepage testimonial rail to nine reviews for mock presentation: seven 5-star and two 4-star. Five new reviews are explicitly tagged in source as fictional demo placeholders for replacement before production.
 
 - v3.57: Added a new homepage “How to make it” editorial section using the generated scoop, mix, and enjoy images as a polished three-step routine block.
+
+- v3.58: Moved the homepage Scoop / Mix / Enjoy section above Your Boost, your way; normalized step-card image and copy sizing so each card has equal overall height at desktop, tablet, and mobile widths.
